@@ -7,11 +7,12 @@ Find out if the Aurora Borealis is currently visible!
 
 ## TODO
 
-- [ ] Assess image quality across resolutions
-- - [ ] Download same-day video in three formats (480p ~50MB, 720p ~100MB, 1080p ~250MB)
-- - [ ] Convert mp4 to list of png
-- - [ ] Assess quality of pngs of different formats
-- - [ ] Convert different png resolution to each other (up/down sample) and assess quality
+- [x] Assess image quality across resolutions
+- - [x] Download same-day video in three formats (480p ~50MB, 720p ~100MB, 1080p ~250MB)
+- - [x] Convert mp4 to list of png
+- - [x] Assess quality of pngs of different formats
+- - [x] Convert different png resolution to each other (up/down sample) and assess quality
+- - [x] **FINDING: 480p is more than enough resolution**
 
 - [ ] Download all 2014-2018 aurora cam streams (720p probably) (download time ~16hrs)
 
