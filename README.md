@@ -15,6 +15,7 @@ Find out if the Aurora Borealis is currently visible!
 - - [x] **FINDING: 480p is more than enough resolution**
 
 - [ ] Download all 2014-2018 aurora cam streams (480p)
+- [ ] Flatten S3 folder structure
 
 - [ ] Build the data-labelling pipeline
 - - [ ] mp4 to png list (script)
@@ -30,3 +31,12 @@ Find out if the Aurora Borealis is currently visible!
 
 - [ ] Build web page and notification system
 - - [ ] ?
+
+## Data labelling UI notes
+
+- https://github.com/spchuang/videojs-markers. see `marker.time`, `marker.duration`
+- https://github.com/awslabs/aws-serverless-express
+
+- [ ] Host static frontend assets behind domain name (northernlight.vision/labeller)
+- [ ] Make sure s3-based videos can be loaded by reference in the video tag
+- [ ] Create rest api which allows listing the video urls (and indicate which ones are already labelled), adding an annotation for a video

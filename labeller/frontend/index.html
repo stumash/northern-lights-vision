@@ -1,0 +1,45 @@
+<head>
+  <link href="video-js.min.css" rel="stylesheet">
+  <link href="videojs.markers.css" rel="stylesheet">
+  <style>
+    #my-video .vjs-marker {
+      opacity: 0.75;
+    }
+    #my-video .vjs-marker:hover {
+      transform: none;
+    }
+    #my-video {
+      margin: auto;
+    }
+  </style>
+</head>
+
+<body>
+  <video id='my-video' class='video-js' controls preload='auto'>
+    <source src='auroramaxHD_20190501_480p.mp4' type='video/mp4'>
+    <p class='vjs-no-js'>
+      To view this video please enable JavaScript, and consider upgrading to a web browser that
+      <a href='https://videojs.com/html5-video-support/' target='_blank'>supports HTML5 video</a>
+    </p>
+  </video>
+
+  <script src="video.min.js"></script>
+  <script src="videojs-markers.min.js"></script>
+  <script>
+      var video = videojs('my-video', {});
+  
+      video.markers({
+        markerStyle: {
+          width: "2px",
+          'background-color': "#b2ff59"
+        },
+        markers: [
+          {time: 9.5, text: "this"},
+          {time: 16,  text: "is"},
+          {time: 23.6,text: "so"},
+          {time: 28, duration: 5, text: "cool"}
+        ]
+      });
+  
+    </script>
+</body>
