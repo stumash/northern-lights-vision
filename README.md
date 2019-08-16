@@ -14,7 +14,7 @@ Find out if the Aurora Borealis is currently visible!
 - - [x] Convert different png resolution to each other (up/down sample) and assess quality
 - - [x] **FINDING: 480p is more than enough resolution**
 
-- [ ] Download all 2014-2018 aurora cam streams (480p)
+- [x] Download all 2014-2018 aurora cam streams (480p)
 - [x] Flatten S3 folder structure
 
 - [ ] Build the data-labelling pipeline

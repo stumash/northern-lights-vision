@@ -1,0 +1,14 @@
+/* Override video js marker styling */
+#videoPlayer .vjs-marker {
+  opacity: 0.85;
+}
+#videoPlayer .vjs-marker:hover {
+  transform: none;
+}
+
+#videoPlayer {
+  margin: auto;
+}
+#markersInfoPanel .bold {
+  font-weight: bold;
+}
