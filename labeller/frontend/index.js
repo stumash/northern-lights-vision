@@ -18,6 +18,9 @@ $(document).ready(() => {
   videoPlayer.markers(VJS_MARKERS_OPTIONS);
   videoPlayer.on("timeupdate", handleTimeUpdate);
   $(document).keyup(handleKeyUp);
+  $("#videoList").on("change", handleVideoSelected);
+  $("#saveButton").click(handleSaveButtonClicked);
+  loadVideoList();
 });
 
 const handleTimeUpdate = () => {
@@ -74,9 +77,36 @@ const updateMarkersInfoPanel = () => {
   let currentKey = currentMarker && currentMarker.key;
   $("#markersInfoPanel").html(`
     ${markers.map(({ time, duration, key }) => `
-      <div class="${key === currentKey ? "bold" : ""}">Time: ${time}, Duration: ${duration}</div>
+      <div class="${key === currentKey ? "bold" : ""}">
+        Time: ${time}, Duration: ${duration}
+      </div>
     `).join("")}
   `);
+};
+
+const handleVideoSelected = () => {
+  const selectedVideo = $("#videoList").val();
+  videoPlayer.src({
+    src: selectedVideo,
+    type: "video/mp4"
+  });
+};
+
+const loadVideoList = async () => {
+  const videoList = await getVideoList();
+  $("#videoList").html(`
+    <option selected disabled hidden>Select a video</option>
+    ${videoList.map(({ path, annotated }) => `
+      <option value="${path}">${path}</option>
+    `).join("")}
+  `);
+};
+
+const handleSaveButtonClicked = () => {
+  const videoPath = $("#videoList").val();
+  const annotationInfo = videoPlayer.markers.getMarkers()
+                           .map(({ time, duration }) => ({ time, duration }));
+  addVideoAnnotation(videoPath, annotationInfo);
 };
 
 // warn user to not leave the page
