@@ -1,5 +1,9 @@
 [
   {
+    "path": "https://northern-lights-vision.s3.amazonaws.com/unlabelled/auroramaxHD_20120214_480p.mp4",
+    "type": "video/mp4"
+  },
+  {
     "path": "videos/auroramaxHD_20190501_480p.mp4",
     "type": "video/mp4"
   },

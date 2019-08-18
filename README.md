@@ -37,6 +37,9 @@ Find out if the Aurora Borealis is currently visible!
 - https://github.com/spchuang/videojs-markers. see `marker.time`, `marker.duration`
 - https://github.com/awslabs/aws-serverless-express
 
-- [ ] Host static frontend assets behind domain name (northernlight.vision/labeller)
-- [ ] Make sure s3-based videos can be loaded by reference in the video tag
+- [x] Make sure s3-based videos can be loaded by reference in the video tag
+- [ ] Host static frontend assets behind domain name (northernlights.vision/labeller) using API gateway
+- - [ ] labeller.northernlights.vision -> labeller frontend
+- - [ ] TODO
+- - [ ] TODO
 - [ ] Create rest api which allows listing the video urls (and indicate which ones are already labelled), adding an annotation for a video
