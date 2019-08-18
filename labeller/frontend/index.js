@@ -1,3 +1,7 @@
+const VJS_OPTIONS = {
+  // inactivityTimeout: 0
+};
+
 const VJS_MARKERS_OPTIONS = {
   markerStyle: {
     width: "2px",
@@ -11,16 +15,17 @@ const VJS_MARKERS_OPTIONS = {
 };
 
 // globals
-let videoPlayer, currentMarker;
+let videoPlayer, currentMarker, videoList;
 
 $(document).ready(() => {
-  videoPlayer = videojs("videoPlayer", {}); 
+  videoPlayer = videojs("videoPlayer", VJS_OPTIONS); 
   videoPlayer.markers(VJS_MARKERS_OPTIONS);
+  videoPlayer.on("loadedmetadata", loadAnnotationsIfPresent);
   videoPlayer.on("timeupdate", handleTimeUpdate);
   $(document).keyup(handleKeyUp);
+  $("#videoList").select2();
   $("#videoList").on("change", handleVideoSelected);
-  $("#saveButton").click(handleSaveButtonClicked);
-  loadVideoList();
+  updateVideoListView();
 });
 
 const handleTimeUpdate = () => {
@@ -28,37 +33,70 @@ const handleTimeUpdate = () => {
     const markerWasUpdated = syncCurrentMarkerWithProgress();
     if(markerWasUpdated) { 
       videoPlayer.markers.updateTime();
-      updateMarkersInfoPanel();
+      updateCurrentMarkerView();
     }
-  }
-};
-
-const syncCurrentMarkerWithProgress = () => {
-  let currentTime = videoPlayer.currentTime();
-  if(currentTime > currentMarker.time) {
-    currentMarker.duration = currentTime - currentMarker.time;
-    return true;
-  } else if (currentMarker.duration) {
-    currentMarker.duration = undefined;
-    return true;
   }
 };
 
 const handleKeyUp = ({ keyCode }) => {
   // "m" key
   if(keyCode === 77) {
-    addOrUpdateMarker();
-    updateMarkersInfoPanel();
+    addOrCompleteMarker();
+    updateMarkersView();
   }
 };
 
-const addOrUpdateMarker = () => {
-  let currentTime = videoPlayer.currentTime();
+const handleVideoSelected = () => {
+  const selectedVideoPath = $("#videoList").val();
+  const { path, type } = videoList.find(({ path }) => path===selectedVideoPath);
+  videoPlayer.src({
+    src: path,
+    type: type
+  });
+};
 
+const handleSaveButtonClicked = () => {
+  const videoPath = $("#videoList").val();
+  const userName = prompt("What is your name?");
+  if(userName) {
+    addVideoAnnotation(videoPath, {
+      annotatedBy: userName,
+      annotations: markersToAnnotations(videoPlayer.markers.getMarkers())
+    });
+  } else {
+    alert("Annotations were not saved as you did not enter your name");
+  }
+};
+
+const loadAnnotationsIfPresent = () => {
+  const selectedVideoPath = $("#videoList").val();
+  const { annotations } = videoList.find(({ path }) => path===selectedVideoPath);
+  if(annotations) {
+    videoPlayer.markers.add(annotationsToMarkers(annotations));
+    updateMarkersView();
+  }
+};
+
+const syncCurrentMarkerWithProgress = () => {
+  const currentTime = videoPlayer.currentTime();
+  if(currentTime > currentMarker.time) {
+    currentMarker.duration = currentTime - currentMarker.time;
+    return true;
+  } else if (currentMarker.duration) {
+    /*
+      In this case, when the current video playback
+      time is less than the current marker start time,
+      should we delete the current marker ?
+    */
+    currentMarker.duration = undefined;
+    return true;
+  }
+};
+
+const addOrCompleteMarker = () => {
+  const currentTime = videoPlayer.currentTime();
   if(!currentMarker) {
-    videoPlayer.markers.add([{
-      time: currentTime
-    }]);
+    videoPlayer.markers.add([{ time: currentTime }]);
     currentMarker = videoPlayer.markers.getMarkers()
                       .find(({ time }) => time===currentTime);
   } else {
@@ -72,41 +110,122 @@ const addOrUpdateMarker = () => {
   } 
 };
 
-const updateMarkersInfoPanel = () => {
-  const markers = videoPlayer.markers.getMarkers();
-  let currentKey = currentMarker && currentMarker.key;
-  $("#markersInfoPanel").html(`
-    ${markers.map(({ time, duration, key }) => `
-      <div class="${key === currentKey ? "bold" : ""}">
-        Time: ${time}, Duration: ${duration}
-      </div>
-    `).join("")}
-  `);
+const updateMarker = (index, newStartTime, newEndTime) => {
+  const marker = videoPlayer.markers.getMarkers()[index];
+  if(newStartTime) {
+    newStartTime = videoTimeFromString(newStartTime);
+    if(newStartTime < marker.time + marker.duration) {
+      oldStartTime = marker.time;
+      marker.time = newStartTime;
+      marker.duration += oldStartTime - newStartTime;
+    }
+  }
+  if(newEndTime) {
+    newEndTime = videoTimeFromString(newEndTime);
+    if(newEndTime > marker.time) {
+      marker.duration = newEndTime - marker.time;
+    }
+  }
+  videoPlayer.markers.updateTime();
 };
 
-const handleVideoSelected = () => {
-  const selectedVideo = $("#videoList").val();
-  videoPlayer.src({
-    src: selectedVideo,
-    type: "video/mp4"
-  });
+const deleteMarker = (index, isCurrentMarker) => { 
+  if(isCurrentMarker) {
+    currentMarker = undefined;
+  }
+  videoPlayer.markers.remove([index]);
+  updateMarkersView();
 };
 
-const loadVideoList = async () => {
-  const videoList = await getVideoList();
+const updateVideoListView = async () => {
+  videoList = await getVideoList();
   $("#videoList").html(`
     <option selected disabled hidden>Select a video</option>
-    ${videoList.map(({ path, annotated }) => `
-      <option value="${path}">${path}</option>
+    ${videoList.map(({ path, annotations, annotatedBy }) => `
+      <option value="${path}">
+        ${path}${annotations ? ` - annotated by ${annotatedBy}` : ""}
+      </option>
     `).join("")}
+  `); 
+};
+
+/*
+   TODO: instead of highlighting the currentMarker,
+   highlight the marker(s) for which the current
+   video time falls within
+*/
+const updateMarkersView = () => {
+  const markers = videoPlayer.markers.getMarkers();
+  const currentMarkerKey = currentMarker && currentMarker.key;
+  if(markers.length === 0) {
+    return $("#markers").html(`
+      <li class="collection-header center"><h4>No Markers</h4></li>
+    `);
+  }
+  $("#markers").html(`
+    ${markers.map(({ time, duration, key }, i) => {
+      const isCurrentMarker = key === currentMarkerKey;
+      return (`
+        <li class="collection-item row ${isCurrentMarker ? "green accent-1" : ""}">
+          <div class="timeView col s10">
+            <div class="input-field inline">
+              <input id="fromMarker${i}"
+                     type="text" 
+                     value="${videoTimeToString(time)}"
+                     oninput="updateMarker(${i}, this.value)"/>
+              <span class="helper-text">From</span>
+            </div>
+            <div class="input-field inline">
+              <input id="toMarker${i}"
+                     type="text" 
+                     value="${videoTimeToString(time + duration)}"
+                     oninput="updateMarker(${i}, undefined, this.value)"/>
+              <span class="helper-text">To</span>
+            </div>
+          </div>
+          <a class="col s2 waves-effect waves-light-green btn-flat" onclick="deleteMarker(${i}, ${isCurrentMarker})"><i class="material-icons center">delete</i></a>
+        </li>
+      `);
+      }).join("")}
   `);
 };
 
-const handleSaveButtonClicked = () => {
-  const videoPath = $("#videoList").val();
-  const annotationInfo = videoPlayer.markers.getMarkers()
-                           .map(({ time, duration }) => ({ time, duration }));
-  addVideoAnnotation(videoPath, annotationInfo);
+const updateCurrentMarkerView = () => {
+  const { time, duration } = currentMarker;
+  const currentMarkerIndex = videoPlayer.markers.getMarkers().indexOf(currentMarker);
+  const $currentMarkerElement = $(`#markers > li:nth-of-type(${currentMarkerIndex + 1}) .timeView .input-field:nth-of-type(2) > input`);
+  $currentMarkerElement.val(videoTimeToString(time + duration));
+};
+
+/*
+  convert format of marker array items
+  to be ready to send to server
+*/
+const markersToAnnotations = markers => (
+  markers.map(({ time, duration }) => ({
+    from: time,
+    to: time + duration
+  }))
+);
+
+const annotationsToMarkers = (annotations) => (
+  annotations.map(({ from, to }) => ({
+    time: from,
+    duration: to - from
+  }))
+);
+
+const videoTimeToString = (time) => {
+  const minutes = numeral(Math.floor(time / 60)).format("00");
+  time -= minutes * 60;
+  // round to the nearest millisecond
+  const seconds = numeral(Math.round(time * 1000) / 1000).format("00.000");
+  return `${minutes}:${seconds}`;
+};
+
+const videoTimeFromString = (time) => {
+  const [ minutes, seconds ] = time.split(":");
+  return parseInt(minutes) * 60 + parseFloat(seconds);
 };
 
 // warn user to not leave the page

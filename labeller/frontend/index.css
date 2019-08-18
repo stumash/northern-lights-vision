@@ -1,3 +1,75 @@
+body {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+}
+main {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+a {
+  color: #00701a;
+}
+#videoPlayer {
+  margin: auto;
+}
+.mainContent {
+  flex-grow: 1;
+  margin: 20px 0;
+}
+.mainContent .videoPlayerContainer, .mainContent .markersContainer {
+  padding: 8px;
+  /* align-self: center; */
+}
+#markers {
+  margin: 0;
+  max-height: 575px;
+  overflow-y: auto;
+}
+#markers .btn-flat i {
+  font-size: 24px;
+}
+#markers .current {
+  font-weight: bold;
+}
+#markers .input-field {
+  margin-top: 0px;
+  margin-bottom: 0px;
+}
+#markers .input-field > input {
+  margin-bottom: 0px;
+}
+.timeView {
+  display: inline-block;
+  padding: 4px;
+}
+nav .brand-logo {
+  height: 100%;
+  padding: 12px;
+  display: flex;
+}
+.videoListContainer {
+  padding: 16px;
+}
+.inputLabel {
+  display: inline-block;
+}
+.inputContainer {
+
+}
+
+/* label focus color */
+#markers .input-field input[type=text]:focus + label {
+  color: #689f38;
+}
+/* label underline focus color */
+.input-field input[type=text]:focus {
+  border-bottom: 1px solid #689f38;
+  box-shadow: 0 1px 0 0 #689f38;
+}
+
+
 /* Override video js marker styling */
 #videoPlayer .vjs-marker {
   opacity: 0.85;
@@ -6,9 +78,59 @@
   transform: none;
 }
 
-#videoPlayer {
-  margin: auto;
+/* See https://github.com/Dogfalo/materialize/issues/3096 */
+.select2 .selection .select2-selection--single, .select2-container--default .select2-search--dropdown .select2-search__field {
+  border-width: 0 0 1px 0 !important;
+  border-radius: 0 !important;
+  height: 2.05rem;
 }
-#markersInfoPanel .bold {
-  font-weight: bold;
+.select2-container--default .select2-selection--multiple, .select2-container--default.select2-container--focus .select2-selection--multiple {
+  border-width: 0 0 1px 0 !important;
+  border-radius: 0 !important;
+}
+.select2-results__option {
+  /* color: #689f38; */
+  padding: 8px 16px;
+  font-size: 16px;
+}
+.select2-results__option {
+  /* color: #689f38; */
+  padding: 8px 16px;
+  font-size: 16px;
+}
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+  background-color: #eee !important;
+  color: black !important;
+}
+.select2-container--default .select2-results__option[aria-selected=true] {
+  background-color: #e1e1e1 !important;
+}
+.select2-dropdown {
+  border: none !important;
+  box-shadow: 0 2px 5px 0 rgba(0,0,0,0.16),0 2px 10px 0 rgba(0,0,0,0.12);
+}
+.select2-container--default .select2-results__option[role=group] .select2-results__group {
+  background-color: #333333;
+  color: #fff;
+}
+.select2-container .select2-search--inline .select2-search__field {
+  margin-top: 0 !important;
+}
+.select2-container .select2-search--inline .select2-search__field:focus {
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
+.select2-container .select2-selection--multiple {
+  min-height: 2.05rem !important;
+}
+.select2-container--default.select2-container--disabled .select2-selection--single {
+  background-color: #ddd !important;
+  color: rgba(0,0,0,0.26);
+  border-bottom: 1px dotted rgba(0,0,0,0.26);
+}
+.select2-container .select2-search input.select2-search__field:focus,
+#markers input:focus {
+  border-bottom: 1px solid #558b2f;
+  -webkit-box-shadow: 0 1px 0 0 #558b2f;
+  box-shadow: 0 1px 0 0 #558b2f;
 }
