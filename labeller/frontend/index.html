@@ -14,38 +14,43 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/numeral.js/2.0.6/numeral.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.8/js/select2.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.9.1/underscore-min.js"></script>
     <script src="api.js"></script>
     <script src="index.js"></script>
   </head>
   <body>
     <nav>
       <div class="nav-wrapper light-green"> 
-        <ul id="nav-mobile" class="left hide-on-med-and-down">
-          <li><a href="https://github.com/stumash/northern-lights-vision" target="_blank"><img src="github-mark.png" class="brand-logo black-text"/></a></li>
+        <ul class="left">
+          <li><a href="https://github.com/stumash/northern-lights-vision" target="_blank" class="black-text">
+            <img src="github-mark.png"/>Project sources
+          </a></li>
         </ul>
         <div class="brand-logo center valign-wrapper black-text">Aurora Video Labeller</div>
-        <ul id="nav-mobile" class="right">
-          <li><a class="black-text" onclick="handleSaveButtonClicked()"><i class="material-icons right">save</i>Save</a></li>
+        <ul class="right">
+          <li><a class="black-text" onclick="handleSaveButtonClicked()">
+            <i class="material-icons right">save</i>Save
+          </a></li>
         </ul>
       </div>
     </nav>
     <main>
       <div class="videoListContainer">
-        <select id="videoList" style="width: 100%"><option selected disabled hidden>Loading videos list</option></select>
+        <select id="videoList" style="width: 100%">
+          <option selected disabled hidden>Loading videos list</option>
+        </select>
       </div>
       <div class="mainContent row">
         <div class="videoPlayerContainer col xl8 s12">
           <video id="videoPlayer" class="video-js" controls preload="auto"></video>
         </div>
-        <div class="markersContainer col xl3 s12">
+        <div class="markersContainer col xl4 s12">
           <ul id="markers" class="collection with-header">
             <li class="collection-header center"><h4>No Markers</h4></li>
           </ul>
         </div>
       </div>
     </main>
-    <footer class="page-footer light-green darken-1">
-      <div class="row"></div>
-    </footer>
+    <footer class="page-footer light-green darken-1"><div class="row"></div></footer>
   </body>
 </html>

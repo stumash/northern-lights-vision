@@ -11,7 +11,8 @@ const VJS_MARKERS_OPTIONS = {
   markerTip: {
     display: false
   },
-  markers: []
+  markers: [],
+  onMarkerClick: () => false // disable feature of seeking to start of marker time on marker click
 };
 
 // globals
@@ -20,11 +21,11 @@ let videoPlayer, currentMarker, videoList;
 $(document).ready(() => {
   videoPlayer = videojs("videoPlayer", VJS_OPTIONS); 
   videoPlayer.markers(VJS_MARKERS_OPTIONS);
-  videoPlayer.on("loadedmetadata", loadAnnotationsIfPresent);
   videoPlayer.on("timeupdate", handleTimeUpdate);
   $(document).keyup(handleKeyUp);
   $("#videoList").select2();
-  $("#videoList").on("change", handleVideoSelected);
+  $("#videoList").on("select2:selecting", handleVideoSelecting);
+  $("#videoList").on("select2:select", handleVideoSelected);
   updateVideoListView();
 });
 
@@ -33,9 +34,10 @@ const handleTimeUpdate = () => {
     const markerWasUpdated = syncCurrentMarkerWithProgress();
     if(markerWasUpdated) { 
       videoPlayer.markers.updateTime();
-      updateCurrentMarkerView();
+      updateCurrentMarkerView();  
     }
   }
+  updateActiveMarkers(); 
 };
 
 const handleKeyUp = ({ keyCode }) => {
@@ -46,23 +48,38 @@ const handleKeyUp = ({ keyCode }) => {
   }
 };
 
+const handleVideoSelecting = e => {
+  if(userChangedMarkers()) {
+    const acceptSelection = confirm("Are you sure you want to switch videos? Unsaved markers may be lost");
+    if(!acceptSelection) {
+      e.preventDefault();
+    }
+  }
+};
+
 const handleVideoSelected = () => {
   const selectedVideoPath = $("#videoList").val();
   const { path, type } = videoList.find(({ path }) => path===selectedVideoPath);
+  videoPlayer.off("loadedmetadata");
   videoPlayer.src({
     src: path,
     type: type
   });
+  videoPlayer.on("loadedmetadata", loadAnnotationsIfPresent);
 };
 
 const handleSaveButtonClicked = () => {
+  if(!userChangedMarkers()) {
+    return alert("No changes to save");
+  }
   const videoPath = $("#videoList").val();
   const userName = prompt("What is your name?");
   if(userName) {
-    addVideoAnnotation(videoPath, {
-      annotatedBy: userName,
-      annotations: markersToAnnotations(videoPlayer.markers.getMarkers())
-    });
+    addVideoAnnotation(
+      videoPath,
+      markersToAnnotations(videoPlayer.markers.getMarkers()),
+      userName
+    );
   } else {
     alert("Annotations were not saved as you did not enter your name");
   }
@@ -71,10 +88,11 @@ const handleSaveButtonClicked = () => {
 const loadAnnotationsIfPresent = () => {
   const selectedVideoPath = $("#videoList").val();
   const { annotations } = videoList.find(({ path }) => path===selectedVideoPath);
+  videoPlayer.markers.removeAll();
   if(annotations) {
     videoPlayer.markers.add(annotationsToMarkers(annotations));
-    updateMarkersView();
   }
+  updateMarkersView();
 };
 
 const syncCurrentMarkerWithProgress = () => {
@@ -110,7 +128,7 @@ const addOrCompleteMarker = () => {
   } 
 };
 
-const updateMarker = (index, newStartTime, newEndTime) => {
+const updateMarker = _.debounce((index, newStartTime, newEndTime) => {
   const marker = videoPlayer.markers.getMarkers()[index];
   if(newStartTime) {
     newStartTime = videoTimeFromString(newStartTime);
@@ -127,7 +145,8 @@ const updateMarker = (index, newStartTime, newEndTime) => {
     }
   }
   videoPlayer.markers.updateTime();
-};
+  updateMarkersView();
+}, 750);
 
 const deleteMarker = (index, isCurrentMarker) => { 
   if(isCurrentMarker) {
@@ -143,7 +162,10 @@ const updateVideoListView = async () => {
     <option selected disabled hidden>Select a video</option>
     ${videoList.map(({ path, annotations, annotatedBy }) => `
       <option value="${path}">
-        ${path}${annotations ? ` - annotated by ${annotatedBy}` : ""}
+        ${(annotations && annotations.length > 0) ? 
+          `${path} - annotated by ${annotatedBy} ✔️` : 
+          path
+        }
       </option>
     `).join("")}
   `); 
@@ -157,6 +179,7 @@ const updateVideoListView = async () => {
 const updateMarkersView = () => {
   const markers = videoPlayer.markers.getMarkers();
   const currentMarkerKey = currentMarker && currentMarker.key;
+  const currentTime = videoPlayer.currentTime();
   if(markers.length === 0) {
     return $("#markers").html(`
       <li class="collection-header center"><h4>No Markers</h4></li>
@@ -179,7 +202,8 @@ const updateMarkersView = () => {
               <input id="toMarker${i}"
                      type="text" 
                      value="${videoTimeToString(time + duration)}"
-                     oninput="updateMarker(${i}, undefined, this.value)"/>
+                     oninput="updateMarker(${i}, undefined, this.value)"
+                     ${isCurrentMarker ? "disabled" : ""}/>
               <span class="helper-text">To</span>
             </div>
           </div>
@@ -195,6 +219,49 @@ const updateCurrentMarkerView = () => {
   const currentMarkerIndex = videoPlayer.markers.getMarkers().indexOf(currentMarker);
   const $currentMarkerElement = $(`#markers > li:nth-of-type(${currentMarkerIndex + 1}) .timeView .input-field:nth-of-type(2) > input`);
   $currentMarkerElement.val(videoTimeToString(time + duration));
+};
+
+const updateActiveMarkers = () => {
+  const markers = videoPlayer.markers.getMarkers();
+  if(markers.length === 0) {
+    return;
+  }
+  const currentTime = videoPlayer.currentTime();
+  $("#markers li").each((i, li) => {
+    const $li = $(li);
+    const isActive = $li.hasClass("green");
+    const { time, duration } = markers[i];
+    if((currentTime > time && currentTime < time + duration) || markers[i] === currentMarker) {
+      !isActive && $li.addClass("green accent-1");
+    } else {
+      isActive && $li.removeClass("green accent-1");
+    }
+  });
+};
+
+const userChangedMarkers = () => {
+  const selectedVideoPath = $("#videoList").val();
+  const selectedVideo = videoList.find(({ path }) => path===selectedVideoPath);
+  const serverAnnotations = selectedVideo ? (selectedVideo.annotations || []) : [];
+  const userAnnotations = markersToAnnotations(videoPlayer.markers.getMarkers());
+  if(serverAnnotations.length !== userAnnotations.length) {
+    return true;
+  }
+  serverAnnotations.forEach((annotation, i) => {
+    if(!annotationsAreEqual(annotation, userAnnotations[i])) {
+      return true;
+    }
+  });
+  return false;
+};
+
+const annotationsAreEqual = (a, b) => {
+  return floatsAreEqual(a.from, b.from) && floatsAreEqual(a.to, b.to);
+};
+
+const floatsAreEqual = (a, b) => {
+  const accuracy = 100000;
+  return Math.round(a * accuracy) === Math.round(b * accuracy);
 };
 
 /*
