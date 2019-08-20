@@ -38,8 +38,6 @@ Find out if the Aurora Borealis is currently visible!
 - https://github.com/awslabs/aws-serverless-express
 
 - [x] Make sure s3-based videos can be loaded by reference in the video tag
-- [ ] Host static frontend assets behind domain name (northernlights.vision/labeller) using API gateway
-- - [ ] labeller.northernlights.vision -> labeller frontend
-- - [ ] TODO
-- - [ ] TODO
-- [ ] Create rest api which allows listing the video urls (and indicate which ones are already labelled), adding an annotation for a video
+- [ ] Host labeller static assets on s3 (+ deploy command)
+- [ ] API Gateway + Lambda for serving url list for video and annotations and for posting annotations (lambda needs s3 write permission)
+- - [ ] lambda Create rest api which allows listing the video urls (and indicate which ones are already labelled), adding an annotation for a video
