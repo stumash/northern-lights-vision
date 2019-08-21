@@ -1,17 +1,18 @@
-const express = require('express');
-const bodyParser = require('body-parser');
-const awsServerlessExpressMiddleware = require('aws-serverless-express/middleware');
+const express = require('express')
+const bodyParser = require('body-parser')
+const awsServerlessExpressMiddleware = require('aws-serverless-express/middleware')
+const aws = require('aws-sdk')
 
-const app = express();
-const router = express.Router();
+const app = express()
+const router = express.Router()
 
-router.use(bodyParser.json());
-router.use(awsServerlessExpressMiddleware.eventContext());
+router.use(bodyParser.json())
+router.use(awsServerlessExpressMiddleware.eventContext())
 
 router.get('/', (req, res) => {
-    res.json(req.apiGate)
-});
+    res.json(req.apiGateway.event)
+})
 
-app.use('/', router);
+app.use('/', router)
 
-module.exports = app;
+module.exports = app
