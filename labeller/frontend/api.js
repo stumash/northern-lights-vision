@@ -4,6 +4,13 @@ const doRequest = (url, method, data) => (
 
 const getVideoList = () => doRequest("https://api.labeller.northernlights.vision/list", "GET");
 
+const getAnnotationObject = async (annotationUrl) => {
+  const annotationAsString = await doRequest(`https://data.northernlights.vision/${annotationUrl}`);
+  if (annotationAsString) {
+    return JSON.parse(annotationAsString);
+  }
+}
+
 const addVideoAnnotation = (videoPath, annotations, annotatedBy) => {
   console.log("Should do a POST with data: ");
   console.log("videoPath", videoPath);

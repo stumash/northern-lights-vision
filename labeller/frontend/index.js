@@ -19,7 +19,7 @@ const VJS_MARKERS_OPTIONS = {
 let videoPlayer, currentMarker, vidUrls_annotUrls;
 
 $(document).ready(() => {
-  videoPlayer = videojs("videoPlayer", VJS_OPTIONS); 
+  videoPlayer = videojs("videoPlayer", VJS_OPTIONS);
   videoPlayer.markers(VJS_MARKERS_OPTIONS);
   videoPlayer.on("timeupdate", handleTimeUpdate);
   $(document).keyup(handleKeyUp);
@@ -32,12 +32,12 @@ $(document).ready(() => {
 const handleTimeUpdate = () => {
   if(currentMarker) {
     const markerWasUpdated = syncCurrentMarkerWithProgress();
-    if(markerWasUpdated) { 
+    if(markerWasUpdated) {
       videoPlayer.markers.updateTime();
-      updateCurrentMarkerView();  
+      updateCurrentMarkerView();
     }
   }
-  updateActiveMarkers(); 
+  updateActiveMarkers();
 };
 
 const handleKeyUp = ({ keyCode }) => {
@@ -58,9 +58,10 @@ const handleVideoSelecting = e => {
 
 const handleVideoSelected = () => {
   const selectedVideoPath = $("#videoList").val();
+  console.log(selectedVideoPath);
   videoPlayer.off("loadedmetadata");
   videoPlayer.src({
-    src: 'data.northernlights.vision/'+selectedVideoPath,
+    src: 'http://data.northernlights.vision/'+selectedVideoPath,
     type: 'video/mp4'
   });
   videoPlayer.on("loadedmetadata", loadAnnotationsIfPresent);
@@ -83,11 +84,11 @@ const handleSaveButtonClicked = () => {
   }
 };
 
-const loadAnnotationsIfPresent = () => {
-  const selectedVideoIndex = $("#videoList").selectedIndex;
-  console.log(selectedVideoIndex);
+const loadAnnotationsIfPresent = async () => {
   videoPlayer.markers.removeAll();
-  if(annotations) {
+  const annotationUrl = vidUrls_annotUrls[$("#videoList").selectedIndex][annotationUrl];
+  if(annotationUrl) {
+    const annotations = await getAnnotationObject(annotationUrl);
     videoPlayer.markers.add(annotationsToMarkers(annotations));
   }
   updateMarkersView();
@@ -123,7 +124,7 @@ const addOrCompleteMarker = () => {
       currentMarker.time = currentTime;
     }
     videoPlayer.markers.updateTime();
-  } 
+  }
 };
 
 const updateMarker = _.debounce((index, newStartTime, newEndTime) => {
@@ -146,7 +147,7 @@ const updateMarker = _.debounce((index, newStartTime, newEndTime) => {
   updateMarkersView();
 }, 750);
 
-const deleteMarker = (index, isCurrentMarker) => { 
+const deleteMarker = (index, isCurrentMarker) => {
   if(isCurrentMarker) {
     currentMarker = undefined;
   }
@@ -164,7 +165,7 @@ const updateVideoListView = async () => {
         ${videoUrl} ${annotationUrl ? '(annotated)' : ''}
       </option>
     `).join("")}
-  `); 
+  `);
 };
 
 /*
@@ -189,14 +190,14 @@ const updateMarkersView = () => {
           <div class="timeView col s10">
             <div class="input-field inline">
               <input id="fromMarker${i}"
-                     type="text" 
+                     type="text"
                      value="${videoTimeToString(time)}"
                      oninput="updateMarker(${i}, this.value)"/>
               <span class="helper-text">From</span>
             </div>
             <div class="input-field inline">
               <input id="toMarker${i}"
-                     type="text" 
+                     type="text"
                      value="${videoTimeToString(time + duration)}"
                      oninput="updateMarker(${i}, undefined, this.value)"
                      ${isCurrentMarker ? "disabled" : ""}/>
