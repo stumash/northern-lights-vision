@@ -5,12 +5,14 @@ const s3 = new aws.S3();
 const _ = require('lodash')
 const express = require('express');
 const bodyParser = require('body-parser');
+const cors = require('cors');
 
 const {asyncHandler} = require('./utils');
 
 const app = express();
 const router = express.Router();
 
+router.use(cors(/*enable all cors by default*/))
 router.use(bodyParser.json());
 router.use(awsServerlessExpressMiddleware.eventContext());
 

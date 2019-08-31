@@ -16,7 +16,7 @@ const VJS_MARKERS_OPTIONS = {
 };
 
 // globals
-let videoPlayer, currentMarker, videoList;
+let videoPlayer, currentMarker, vidUrls_annotUrls;
 
 $(document).ready(() => {
   videoPlayer = videojs("videoPlayer", VJS_OPTIONS); 
@@ -49,21 +49,19 @@ const handleKeyUp = ({ keyCode }) => {
 };
 
 const handleVideoSelecting = e => {
-  if(userChangedMarkers()) {
-    const acceptSelection = confirm("Are you sure you want to switch videos? Unsaved markers may be lost");
-    if(!acceptSelection) {
-      e.preventDefault();
-    }
+  const s = "Are you sure you want to switch videos? Unsaved markers may be lost";
+  const acceptSelection = confirm(s);
+  if(!acceptSelection) {
+    e.preventDefault();
   }
 };
 
 const handleVideoSelected = () => {
   const selectedVideoPath = $("#videoList").val();
-  const { path, type } = videoList.find(({ path }) => path===selectedVideoPath);
   videoPlayer.off("loadedmetadata");
   videoPlayer.src({
-    src: path,
-    type: type
+    src: 'data.northernlights.vision/'+selectedVideoPath,
+    type: 'video/mp4'
   });
   videoPlayer.on("loadedmetadata", loadAnnotationsIfPresent);
 };
@@ -86,8 +84,8 @@ const handleSaveButtonClicked = () => {
 };
 
 const loadAnnotationsIfPresent = () => {
-  const selectedVideoPath = $("#videoList").val();
-  const { annotations } = videoList.find(({ path }) => path===selectedVideoPath);
+  const selectedVideoIndex = $("#videoList").selectedIndex;
+  console.log(selectedVideoIndex);
   videoPlayer.markers.removeAll();
   if(annotations) {
     videoPlayer.markers.add(annotationsToMarkers(annotations));
@@ -157,15 +155,13 @@ const deleteMarker = (index, isCurrentMarker) => {
 };
 
 const updateVideoListView = async () => {
-  videoList = await getVideoList();
+  vidUrls_annotUrls = await getVideoList();
+
   $("#videoList").html(`
     <option selected disabled hidden>Select a video</option>
-    ${videoList.map(({ path, annotations, annotatedBy }) => `
-      <option value="${path}">
-        ${(annotations && annotations.length > 0) ? 
-          `${path} - annotated by ${annotatedBy} ✔️` : 
-          path
-        }
+    ${vidUrls_annotUrls.map(({videoUrl, annotationUrl}) => `
+      <option value="${videoUrl}">
+        ${videoUrl} ${annotationUrl ? '(annotated)' : ''}
       </option>
     `).join("")}
   `); 
@@ -237,22 +233,6 @@ const updateActiveMarkers = () => {
       isActive && $li.removeClass("green accent-1");
     }
   });
-};
-
-const userChangedMarkers = () => {
-  const selectedVideoPath = $("#videoList").val();
-  const selectedVideo = videoList.find(({ path }) => path===selectedVideoPath);
-  const serverAnnotations = selectedVideo ? (selectedVideo.annotations || []) : [];
-  const userAnnotations = markersToAnnotations(videoPlayer.markers.getMarkers());
-  if(serverAnnotations.length !== userAnnotations.length) {
-    return true;
-  }
-  serverAnnotations.forEach((annotation, i) => {
-    if(!annotationsAreEqual(annotation, userAnnotations[i])) {
-      return true;
-    }
-  });
-  return false;
 };
 
 const annotationsAreEqual = (a, b) => {
