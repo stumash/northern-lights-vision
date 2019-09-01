@@ -1,16 +1,18 @@
 const awsServerlessExpressMiddleware = require('aws-serverless-express/middleware');
-const aws = require('aws-sdk');
-const s3 = new aws.S3();
 
 const _ = require('lodash')
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 
-const {asyncHandler} = require('./utils');
+const {asyncHandler, validateAnnotations, s3utils} = require('./utils');
 
 const app = express();
 const router = express.Router();
+
+const bucketUrl = 'data.northernlights.vision';
+const vidPrefix = 'unlabelled/';
+const annotPrefix = 'annotations/';
 
 router.use(cors())
 router.use(bodyParser.json());
@@ -22,69 +24,36 @@ router.use(awsServerlessExpressMiddleware.eventContext());
  */
 router.get('/list', asyncHandler(async (req, res, next) => {
     let [videoUrls, annotationUrls] = await Promise.all([
-        getAllBucketKeys('data.northernlights.vision', 'unlabelled/'),
-        getAllBucketKeys('data.northernlights.vision', 'annotations/')
+        s3utils.getAllBucketKeys(bucketUrl, vidPrefix),
+        s3utils.getAllBucketKeys(bucketUrl, annotPrefix)
     ]);
 
     // gets the 'name' of a file from its s3 object url. (filename w/o extension)
     const filenameNoExtRegex = /[a-zA-Z0-9_-]+(?=\.[a-zA-Z0-9]+$)/g;
 
-    videoUrls = _.sortBy(videoUrls);
     annotationUrlsByName = _.keyBy(annotationUrls, url => url.match(filenameNoExtRegex)[0]);
 
-    res.json(_.map(videoUrls, videoUrl => {
+    res.json(_.map(_.sortBy(videoUrls), videoUrl => {
         const videoName = videoUrl.match(filenameNoExtRegex)[0];
+        const annotationUrl = annotationUrlsByName[videoName];
 
-        const o = {'videoUrl': videoUrl};
-        if (annotationUrlsByName[videoName]) { // video and annotation 'names' match?
-            o['annotationUrl'] = annotationUrlsByName[videoName];
-        }
-        return o;
+        return { videoUrl, annotationUrl };
     }));
 }));
 
 router.post('/annotate', asyncHandler(async (req, res, next) => {
     const {videoPath, annotations, annotatedBy} = req.body;
     const annotationPath = videoPath
-        .replace('unlabelled/', 'annotations/')
+        .replace(vidPrefix, annotPrefix)
         .replace('.mp4', '.json');
 
-    // TODO: validate annotations object
+    validateAnnotations(annotations);
 
-    const s3PutObjectParams = {
-        Body: JSON.stringify(annotations),
-        Bucket: 'data.northernlights.vision',
-        Key: annotationPath
-    };
-    try {
-        await s3.putObject(s3PutObjectParams).promise();
-        res.json({success: true});
-    } catch (err) {
-        res.json({success: false, message: 'putObject failed'});
-    }
+    await s3utils.putObject( bucketUrl, annotationPath, JSON.stringify(annotations) ).promise();
+
+    // TODO: use author (annotatedBy) somehow
 }));
 
 app.use('/', router);
 
 module.exports = app;
-
-const getAllBucketKeys = async (bucketName, prefix) => {
-    const allKeys = [];
-    let NextContinuationToken, IsTruncated, Contents;
-
-    do {
-        const params = {
-            Bucket: bucketName,
-            Prefix: prefix
-        };
-        if (NextContinuationToken) {
-            params.ContinuationToken = NextContinuationToken;
-        }
-
-        ({NextContinuationToken, IsTruncated, Contents} = await s3.listObjectsV2(params).promise());
-
-        allKeys.push(...Contents.map(o => o.Key));
-    } while (IsTruncated);
-
-    return allKeys;
-}
