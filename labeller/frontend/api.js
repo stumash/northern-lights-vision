@@ -1,6 +1,9 @@
-const doRequest = (url, method, data) => (
-  $.ajax({ url, method, data })
-);
+const doRequest = (url, method, data) => $.ajax({
+  url, method,
+  data: JSON.stringify(data), /* must stringify request body else gets URL-encoded */
+  contentType: 'application/json', /* request body for POST is json */
+  dataType: 'json' /* response is json*/
+});
 
 const getVideoList = () => doRequest("https://api.labeller.northernlights.vision/list", "GET");
 
@@ -11,11 +14,12 @@ const getAnnotationObject = async (annotationUrl) => {
   }
 }
 
-const addVideoAnnotation = (videoPath, annotations, annotatedBy) => {
+const addVideoAnnotation = async (videoPath, annotations, annotatedBy) => {
   console.log("Should do a POST with data: ");
   console.log("videoPath", videoPath);
   console.log("annotations", annotations);
   console.log("annotatedBy", annotatedBy);
   const data = {videoPath, annotations, annotatedBy};
-  doRequest("https://api.labeller.northernlights.vision/annotate", "POST", data);
+  const res = await doRequest("https://api.labeller.northernlights.vision/annotate", "POST", data);
+  console.log(res);
 };

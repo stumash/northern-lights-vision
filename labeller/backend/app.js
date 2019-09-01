@@ -12,7 +12,7 @@ const {asyncHandler} = require('./utils');
 const app = express();
 const router = express.Router();
 
-router.use(cors(/*enable all cors by default*/))
+router.use(cors())
 router.use(bodyParser.json());
 router.use(awsServerlessExpressMiddleware.eventContext());
 
@@ -44,7 +44,24 @@ router.get('/list', asyncHandler(async (req, res, next) => {
 }));
 
 router.post('/annotate', asyncHandler(async (req, res, next) => {
-    res.send('/annotate served successfully')
+    const {videoPath, annotations, annotatedBy} = req.body;
+    const annotationPath = videoPath
+        .replace('unlabelled/', 'annotations/')
+        .replace('.mp4', '.json');
+
+    // TODO: validate annotations object
+
+    const s3PutObjectParams = {
+        Body: JSON.stringify(annotations),
+        Bucket: 'data.northernlights.vision',
+        Key: annotationPath
+    };
+    try {
+        await s3.putObject(s3PutObjectParams).promise();
+        res.json({success: true});
+    } catch (err) {
+        res.json({success: false, message: 'putObject failed'});
+    }
 }));
 
 app.use('/', router);

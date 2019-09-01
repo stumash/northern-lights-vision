@@ -68,9 +68,6 @@ const handleVideoSelected = () => {
 };
 
 const handleSaveButtonClicked = () => {
-  if(!userChangedMarkers()) {
-    return alert("No changes to save");
-  }
   const videoPath = $("#videoList").val();
   const userName = prompt("What is your name?");
   if(userName) {
@@ -86,7 +83,8 @@ const handleSaveButtonClicked = () => {
 
 const loadAnnotationsIfPresent = async () => {
   videoPlayer.markers.removeAll();
-  const annotationUrl = vidUrls_annotUrls[$("#videoList").selectedIndex][annotationUrl];
+  const selectedVideoIndex = $('#videoList').prop('selectedIndex');
+  const annotationUrl = vidUrls_annotUrls[selectedVideoIndex].annotationUrl;
   if(annotationUrl) {
     const annotations = await getAnnotationObject(annotationUrl);
     videoPlayer.markers.add(annotationsToMarkers(annotations));
@@ -159,12 +157,12 @@ const updateVideoListView = async () => {
   vidUrls_annotUrls = await getVideoList();
 
   $("#videoList").html(`
-    <option selected disabled hidden>Select a video</option>
     ${vidUrls_annotUrls.map(({videoUrl, annotationUrl}) => `
       <option value="${videoUrl}">
         ${videoUrl} ${annotationUrl ? '(annotated)' : ''}
       </option>
     `).join("")}
+    <option selected disabled hidden>Select a video</option>
   `);
 };
 
