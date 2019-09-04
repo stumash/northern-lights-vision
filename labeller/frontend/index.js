@@ -1,3 +1,5 @@
+'use strict';
+
 const VJS_OPTIONS = {
   // inactivityTimeout: 0
 };
@@ -16,16 +18,21 @@ const VJS_MARKERS_OPTIONS = {
 };
 
 // globals
-let videoPlayer, currentMarker, vidUrls_annotUrls;
+let videoPlayer;
+let currentMarker;
+let vidUrls_annotUrls;
+let currentSavedAnnotations;
 
 $(document).ready(() => {
   videoPlayer = videojs("videoPlayer", VJS_OPTIONS);
   videoPlayer.markers(VJS_MARKERS_OPTIONS);
   videoPlayer.on("timeupdate", handleTimeUpdate);
   $(document).keyup(handleKeyUp);
-  $("#videoList").select2();
-  $("#videoList").on("select2:selecting", handleVideoSelecting);
-  $("#videoList").on("select2:select", handleVideoSelected);
+
+  const $videoList = $('#videoList');
+  $videoList.select2();
+  $videoList.on("select2:selecting", handleVideoSelecting);
+  $videoList.on("select2:select", handleVideoSelected);
   updateVideoListView();
 });
 
@@ -49,16 +56,18 @@ const handleKeyUp = ({ keyCode }) => {
 };
 
 const handleVideoSelecting = e => {
-  const s = "Are you sure you want to switch videos? Unsaved markers may be lost";
-  const acceptSelection = confirm(s);
-  if(!acceptSelection) {
-    e.preventDefault();
+  const currentAnnotations = markersToAnnotations(videoPlayer.markers.getMarkers());
+  if (!_.isEqual(currentSavedAnnotations, currentAnnotations)) {
+    const s = "Are you sure you want to switch videos? Unsaved markers may be lost";
+    const acceptSelection = confirm(s);
+    if(!acceptSelection) {
+      e.preventDefault();
+    }
   }
 };
 
 const handleVideoSelected = () => {
   const selectedVideoPath = $("#videoList").val();
-  console.log(selectedVideoPath);
   videoPlayer.off("loadedmetadata");
   videoPlayer.src({
     src: 'http://data.northernlights.vision/'+selectedVideoPath,
@@ -84,9 +93,13 @@ const handleSaveButtonClicked = () => {
 const loadAnnotationsIfPresent = async () => {
   videoPlayer.markers.removeAll();
   const selectedVideoIndex = $('#videoList').prop('selectedIndex');
+  console.log(`selectedVideoIndex: ${selectedVideoIndex}`);
   const annotationUrl = vidUrls_annotUrls[selectedVideoIndex].annotationUrl;
   if(annotationUrl) {
+    console.log(`annotationUrl: ${annotationUrl}`);
     const annotations = await getAnnotationObject(annotationUrl);
+    console.log(`annotations: ${annotations}`);
+    currentSavedAnnotations = annotations;
     videoPlayer.markers.add(annotationsToMarkers(annotations));
   }
   updateMarkersView();
@@ -156,14 +169,16 @@ const deleteMarker = (index, isCurrentMarker) => {
 const updateVideoListView = async () => {
   vidUrls_annotUrls = await getVideoList();
 
-  $("#videoList").html(`
+  const $videoList = $('#videoList')
+  $videoList.html(`
     ${vidUrls_annotUrls.map(({videoUrl, annotationUrl}) => `
       <option value="${videoUrl}">
         ${videoUrl} ${annotationUrl ? '(annotated)' : ''}
       </option>
     `).join("")}
-    <option selected disabled hidden>Select a video</option>
+    <option selected disabled hidden data-default="default">Select a video</option>
   `);
+  $videoList.prop('disabled', false);
 };
 
 /*
@@ -232,15 +247,6 @@ const updateActiveMarkers = () => {
       isActive && $li.removeClass("green accent-1");
     }
   });
-};
-
-const annotationsAreEqual = (a, b) => {
-  return floatsAreEqual(a.from, b.from) && floatsAreEqual(a.to, b.to);
-};
-
-const floatsAreEqual = (a, b) => {
-  const accuracy = 100000;
-  return Math.round(a * accuracy) === Math.round(b * accuracy);
 };
 
 /*
