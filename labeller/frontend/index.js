@@ -21,7 +21,7 @@ const VJS_MARKERS_OPTIONS = {
 let videoPlayer;
 let currentMarker;
 let vidUrls_annotUrls;
-let currentSavedAnnotations;
+let currentSavedAnnotations = [];
 
 $(document).ready(() => {
   videoPlayer = videojs("videoPlayer", VJS_OPTIONS);
@@ -93,14 +93,13 @@ const handleSaveButtonClicked = () => {
 const loadAnnotationsIfPresent = async () => {
   videoPlayer.markers.removeAll();
   const selectedVideoIndex = $('#videoList').prop('selectedIndex');
-  console.log(`selectedVideoIndex: ${selectedVideoIndex}`);
   const annotationUrl = vidUrls_annotUrls[selectedVideoIndex].annotationUrl;
   if(annotationUrl) {
-    console.log(`annotationUrl: ${annotationUrl}`);
     const annotations = await getAnnotationObject(annotationUrl);
-    console.log(`annotations: ${annotations}`);
     currentSavedAnnotations = annotations;
     videoPlayer.markers.add(annotationsToMarkers(annotations));
+  } else {
+    currentSavedAnnotations = [];
   }
   updateMarkersView();
 };
@@ -169,7 +168,7 @@ const deleteMarker = (index, isCurrentMarker) => {
 const updateVideoListView = async () => {
   vidUrls_annotUrls = await getVideoList();
 
-  const $videoList = $('#videoList')
+  const $videoList = $('#videoList');
   $videoList.html(`
     ${vidUrls_annotUrls.map(({videoUrl, annotationUrl}) => `
       <option value="${videoUrl}">
