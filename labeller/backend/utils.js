@@ -53,8 +53,10 @@ const putObject = async (bucket, path, data, author) => {
     Bucket: bucket,
     Key: path,
     Body: data,
+    Metadata: { author },
+
     CacheControl: 'no-cache',
-    Metadata: { author }
+    ContentType: 'application/json'
   };
 
   await s3.putObject(s3PutObjectParams).promise();
