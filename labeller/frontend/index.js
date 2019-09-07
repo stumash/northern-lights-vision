@@ -20,7 +20,7 @@ const VJS_MARKERS_OPTIONS = {
 // globals
 let videoPlayer;
 let currentMarker;
-let vidUrls_annotUrls;
+let vidUrls_annotInfos;
 let currentSavedAnnotations = [];
 
 $(document).ready(() => {
@@ -93,8 +93,9 @@ const handleSaveButtonClicked = () => {
 const loadAnnotationsIfPresent = async () => {
   videoPlayer.markers.removeAll();
   const selectedVideoIndex = $('#videoList').prop('selectedIndex');
-  const annotationUrl = vidUrls_annotUrls[selectedVideoIndex].annotationUrl;
-  if(annotationUrl) {
+  const annotationInfo = vidUrls_annotInfos[selectedVideoIndex].annotationInfo;
+  if(annotationInfo) {
+    const {annotationUrl} = annotationInfo;
     const annotations = await getAnnotationObject(annotationUrl);
     currentSavedAnnotations = annotations;
     videoPlayer.markers.add(annotationsToMarkers(annotations));
@@ -166,13 +167,13 @@ const deleteMarker = (index, isCurrentMarker) => {
 };
 
 const updateVideoListView = async () => {
-  vidUrls_annotUrls = await getVideoList();
+  vidUrls_annotInfos = await getVideoList();
 
   const $videoList = $('#videoList');
   $videoList.html(`
-    ${vidUrls_annotUrls.map(({videoUrl, annotationUrl}) => `
+    ${vidUrls_annotInfos.map(({videoUrl, annotationInfo}) => `
       <option value="${videoUrl}">
-        ${videoUrl} ${annotationUrl ? '(annotated)' : ''}
+        ${videoUrl} ${annotationInfo ? `(annotated by ${annotationInfo.annotationAuthor})` : ''}
       </option>
     `).join("")}
     <option selected disabled hidden data-default="default">Select a video</option>

@@ -7,7 +7,7 @@ const asyncHandler = fn => (req, res, next) =>
     .catch(next)
 
 const validateAnnotations = (annotations) => {
-  if (!(annotations.length)) {
+  if (!(annotations instanceof Array)) {
     throw 'annotations is not an array';
   } else if (annotations.length > 100) {
     throw 'annotations too long (>100)';
@@ -21,19 +21,19 @@ const validateAnnotation = (annotation, i) => {
     throw `annotation ${i}: from:${from} >= to:${to}`
   }
   for (let prop in annotation) {
-    if (!['from', 'to'].inludes(prop)) {
+    if (!['from', 'to'].includes(prop)) {
       throw `annotation ${i} has property ${prop} which is not in ['from', 'to']`
     }
   }
 }
 
-const getAllBucketKeys = async (bucketName, prefix) => {
+const getAllBucketKeys = async (bucket, prefix) => {
   const allKeys = [];
   let Contents, IsTruncated, NextContinuationToken;
 
   do {
     const params = {
-      Bucket: bucketName,
+      Bucket: bucket,
       Prefix: prefix
     };
     if (NextContinuationToken) {
@@ -48,18 +48,24 @@ const getAllBucketKeys = async (bucketName, prefix) => {
   return allKeys;
 };
 
-const putObject = async (bucket, path, data) => {
+const putObject = async (bucket, path, data, author) => {
   const s3PutObjectParams = {
     Bucket: bucket,
     Key: path,
-    Body: data
+    Body: data,
+    Metadata: { author }
   };
 
   await s3.putObject(s3PutObjectParams).promise();
 }
 
+const getAnnotationAuthor = async (bucket, annotationUrl) => {
+  const {author} = (await s3.headObject({Bucket: bucket, Key: annotationUrl}).promise()).Metadata;
+  return author;
+}
+
 const s3utils = {
-  getAllBucketKeys, putObject
+  getAllBucketKeys, putObject, getAnnotationAuthor
 };
 
 module.exports = {asyncHandler, validateAnnotations, s3utils};

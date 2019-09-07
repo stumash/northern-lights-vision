@@ -28,30 +28,40 @@ router.get('/list', asyncHandler(async (req, res, next) => {
         s3utils.getAllBucketKeys(bucketUrl, annotPrefix)
     ]);
 
+    const annotationAuthors = await Promise.all(_.map(annotationUrls, async (annotationUrl) => {
+        return s3utils.getAnnotationAuthor(bucketUrl, annotationUrl);
+    }));
+    const annsWithAuths = _.zipWith(annotationUrls, annotationAuthors, (annotationUrl, annotationAuthor) => (
+        {annotationUrl, annotationAuthor}
+    ));
+
     // gets the 'name' of a file from its s3 object url. (filename w/o extension)
     const filenameNoExtRegex = /[a-zA-Z0-9_-]+(?=\.[a-zA-Z0-9]+$)/g;
 
-    annotationUrlsByName = _.keyBy(annotationUrls, url => url.match(filenameNoExtRegex)[0]);
+    const annsWithAuthsByName = _.keyBy(annsWithAuths, aa => aa.annotationUrl.match(filenameNoExtRegex)[0]);
 
     res.json(_.map(_.sortBy(videoUrls), videoUrl => {
         const videoName = videoUrl.match(filenameNoExtRegex)[0];
-        const annotationUrl = annotationUrlsByName[videoName];
+        const annotationInfo = annsWithAuthsByName[videoName];
 
-        return { videoUrl, annotationUrl };
+        return annotationInfo ?
+            { videoUrl, annotationInfo } :
+            { videoUrl };
     }));
 }));
 
 router.post('/annotate', asyncHandler(async (req, res, next) => {
     const {videoPath, annotations, annotatedBy} = req.body;
+    console.log(`videoPath: ${videoPath}`)
+    console.log(`annotations: ${annotations}`)
+    console.log(`annotatedBy: ${annotatedBy}`)
     const annotationPath = videoPath
         .replace(vidPrefix, annotPrefix)
         .replace('.mp4', '.json');
 
     validateAnnotations(annotations);
 
-    await s3utils.putObject( bucketUrl, annotationPath, JSON.stringify(annotations) ).promise();
-
-    // TODO: use author (annotatedBy) somehow
+    await s3utils.putObject( bucketUrl, annotationPath, JSON.stringify(annotations), annotatedBy );
 }));
 
 app.use('/', router);
