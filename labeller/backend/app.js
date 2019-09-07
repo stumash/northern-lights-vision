@@ -62,6 +62,8 @@ router.post('/annotate', asyncHandler(async (req, res, next) => {
     validateAnnotations(annotations);
 
     await s3utils.putObject( bucketUrl, annotationPath, JSON.stringify(annotations), annotatedBy );
+
+    res.send();
 }));
 
 app.use('/', router);

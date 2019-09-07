@@ -53,6 +53,7 @@ const putObject = async (bucket, path, data, author) => {
     Bucket: bucket,
     Key: path,
     Body: data,
+    CacheControl: 'no-cache',
     Metadata: { author }
   };
 
