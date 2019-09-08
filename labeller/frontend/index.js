@@ -76,15 +76,21 @@ const handleVideoSelected = () => {
   videoPlayer.on("loadedmetadata", loadAnnotationsIfPresent);
 };
 
-const handleSaveButtonClicked = () => {
+const handleSaveButtonClicked = async () => {
   const videoPath = $("#videoList").val();
   const userName = prompt("What is your name?");
   if(userName) {
-    addVideoAnnotation(
+    await addVideoAnnotation(
       videoPath,
       markersToAnnotations(videoPlayer.markers.getMarkers()),
       userName
     );
+
+    // update option in select menu
+    const selectedVideoIndex = $("#videoList").prop("selectedIndex");
+    const newText = `${videoPath} ${userName ? `(annotated by ${userName})` : ''}`;
+    $(`#videoList option:nth-child(${selectedVideoIndex+1})`).text(newText);
+    $("#videoList").select2();
   } else {
     alert("Annotations were not saved as you did not enter your name");
   }
