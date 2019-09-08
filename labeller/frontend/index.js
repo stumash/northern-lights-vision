@@ -1,5 +1,10 @@
 'use strict';
 
+/**
+ * TODO
+ * - update `currentSavedAnnotations` on save
+ */
+
 const VJS_OPTIONS = {
   // inactivityTimeout: 0
 };
@@ -91,6 +96,9 @@ const handleSaveButtonClicked = async () => {
     const newText = `${videoPath} ${userName ? `(annotated by ${userName})` : ''}`;
     $(`#videoList option:nth-child(${selectedVideoIndex+1})`).text(newText);
     $("#videoList").select2();
+
+    // update currentSavedAnnotations
+    currentSavedAnnotations = markersToAnnotations(videoPlayer.markers.getMarkers());
   } else {
     alert("Annotations were not saved as you did not enter your name");
   }
@@ -294,3 +302,13 @@ window.addEventListener("beforeunload", e => {
     return "";
   }
 });
+
+const handleHelpButtonClicked = () => {
+  const helpText = [
+    "Key Mappings:",
+    "- m:     start/stop marker",
+    "- left:  scroll back video a small amount",
+    "- right: scroll forward video a small amount"
+  ].join("\n");
+  alert(helpText);
+}
