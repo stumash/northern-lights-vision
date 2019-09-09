@@ -18,9 +18,10 @@ Find out if the Aurora Borealis is currently visible!
 - [x] Flatten S3 folder structure
 
 - [ ] Build the data-labelling pipeline
-- - [ ] mp4 to png list (script)
+- - [x] mp4 to png list (script)
 - - [ ] label png list using timestamps for mp4 (script)
-- - [ ] build ui for easy timestamping of mp4
+- - [x] build ui for easy timestamping of mp4
+  - - [ ] **URGENT**: label enough data
 
 - [ ] Build and Train a computer vision machine learning model
 - - [ ] Define the model (probably AlexNet variant)
@@ -31,13 +32,3 @@ Find out if the Aurora Borealis is currently visible!
 
 - [ ] Build web page and notification system
 - - [ ] ?
-
-## Data labelling UI notes
-
-- https://github.com/spchuang/videojs-markers. see `marker.time`, `marker.duration`
-- https://github.com/awslabs/aws-serverless-express
-
-- [x] Make sure s3-based videos can be loaded by reference in the video tag
-- [x] Host labeller static assets on s3 (+ deploy command)
-- [ ] API Gateway + Lambda for serving url list for video and annotations and for posting annotations (lambda needs s3 write permission)
-- - [ ] lambda Create rest api which allows listing the video urls (and indicate which ones are already labelled), adding an annotation for a video

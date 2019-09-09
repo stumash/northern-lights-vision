@@ -1,21 +1,26 @@
-const doRequest = (url, method, data) => (
-  $.ajax({ url, method, data })
-);
+const dataUrl = 'http://data.northernlights.vision';
+const apiUrl = 'https://api.labeller.northernlights.vision';
 
-const getVideoList = () => doRequest("https://api.labeller.northernlights.vision/list", "GET");
+const getVideoList = async () => {
+  return await doRequest('GET', `${apiUrl}/list`);
+};
 
 const getAnnotationObject = async (annotationUrl) => {
-  const annotationAsString = await doRequest(`https://data.northernlights.vision/${annotationUrl}`);
-  if (annotationAsString) {
-    return JSON.parse(annotationAsString);
-  }
+  return await doRequest('GET', `${dataUrl}/${annotationUrl}`);
 }
 
-const addVideoAnnotation = (videoPath, annotations, annotatedBy) => {
-  console.log("Should do a POST with data: ");
-  console.log("videoPath", videoPath);
-  console.log("annotations", annotations);
-  console.log("annotatedBy", annotatedBy);
+const addVideoAnnotation = async (videoPath, annotations, annotatedBy) => {
   const data = {videoPath, annotations, annotatedBy};
-  doRequest("https://api.labeller.northernlights.vision/annotate", "POST", data);
+  await doRequest('POST', `${apiUrl}/annotate`, data);
 };
+
+const doRequest = async (method, url, json) => {
+  return await $.ajax({
+    method:      method,
+    url:         url,
+    data:        JSON.stringify(json), /* must stringify request body else is URL-encoded */
+    contentType: 'application/json',   /* request data for POST is json */
+    dataType:    'json'                /* response data is json*/
+  });
+};
+

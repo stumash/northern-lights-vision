@@ -1,18 +1,20 @@
-const awsServerlessExpressMiddleware = require('aws-serverless-express/middleware');
-const aws = require('aws-sdk');
-const s3 = new aws.S3();
+const awsServerlessExpressMiddleware = require("aws-serverless-express/middleware");
 
-const _ = require('lodash')
-const express = require('express');
-const bodyParser = require('body-parser');
-const cors = require('cors');
+const _ = require("lodash");
+const express = require("express");
+const bodyParser = require("body-parser");
+const cors = require("cors");
 
-const {asyncHandler} = require('./utils');
+const {asyncHandler, validateAnnotations, s3utils} = require("./utils");
 
 const app = express();
 const router = express.Router();
 
-router.use(cors(/*enable all cors by default*/))
+const bucketUrl = "data.northernlights.vision";
+const vidPrefix = "unlabelled/";
+const annotPrefix = "annotations/";
+
+router.use(cors());
 router.use(bodyParser.json());
 router.use(awsServerlessExpressMiddleware.eventContext());
 
@@ -20,54 +22,47 @@ router.use(awsServerlessExpressMiddleware.eventContext());
  * List the s3 object urls of all unlabelled video files. If the video file has a corresponding annotation
  * file, list the s3 object url of that file too. Sort the list by videoUrl.
  */
-router.get('/list', asyncHandler(async (req, res, next) => {
-    let [videoUrls, annotationUrls] = await Promise.all([
-        getAllBucketKeys('data.northernlights.vision', 'unlabelled/'),
-        getAllBucketKeys('data.northernlights.vision', 'annotations/')
-    ]);
+router.get("/list", asyncHandler(async (req, res, next) => {
+  let [videoUrls, annotationUrls] = await Promise.all([
+    s3utils.getAllBucketKeys(bucketUrl, vidPrefix),
+    s3utils.getAllBucketKeys(bucketUrl, annotPrefix)
+  ]);
 
-    // gets the 'name' of a file from its s3 object url. (filename w/o extension)
-    const filenameNoExtRegex = /[a-zA-Z0-9_-]+(?=\.[a-zA-Z0-9]+$)/g;
+  const annotationAuthors = await Promise.all(_.map(annotationUrls, async (annotationUrl) => {
+    return s3utils.getAnnotationAuthor(bucketUrl, annotationUrl);
+  }));
+  const annsWithAuths = _.zipWith(annotationUrls, annotationAuthors, (annotationUrl, annotationAuthor) => (
+    {annotationUrl, annotationAuthor}
+  ));
 
-    videoUrls = _.sortBy(videoUrls);
-    annotationUrlsByName = _.keyBy(annotationUrls, url => url.match(filenameNoExtRegex)[0]);
+  // gets the "name" of a file from its s3 object url. (filename w/o extension)
+  const filenameNoExtRegex = /[a-zA-Z0-9_-]+(?=\.[a-zA-Z0-9]+$)/g;
 
-    res.json(_.map(videoUrls, videoUrl => {
-        const videoName = videoUrl.match(filenameNoExtRegex)[0];
+  const annsWithAuthsByName = _.keyBy(annsWithAuths, aa => aa.annotationUrl.match(filenameNoExtRegex)[0]);
 
-        const o = {'videoUrl': videoUrl};
-        if (annotationUrlsByName[videoName]) { // video and annotation 'names' match?
-            o['annotationUrl'] = annotationUrlsByName[videoName];
-        }
-        return o;
-    }));
+  res.json(_.map(_.shuffle(videoUrls), videoUrl => {
+    const videoName = videoUrl.match(filenameNoExtRegex)[0];
+    const annotationInfo = annsWithAuthsByName[videoName];
+
+    return annotationInfo ?
+      { videoUrl, annotationInfo } :
+      { videoUrl };
+  }));
 }));
 
-router.post('/annotate', asyncHandler(async (req, res, next) => {
-    res.send('/annotate served successfully')
+router.post("/annotate", asyncHandler(async (req, res, next) => {
+  const {videoPath, annotations, annotatedBy} = req.body;
+  const annotationPath = videoPath
+    .replace(vidPrefix, annotPrefix)
+    .replace(".mp4", ".json");
+
+  validateAnnotations(annotations);
+
+  await s3utils.putObject( bucketUrl, annotationPath, JSON.stringify(annotations), annotatedBy );
+
+  res.json({});
 }));
 
-app.use('/', router);
+app.use("/", router);
 
 module.exports = app;
-
-const getAllBucketKeys = async (bucketName, prefix) => {
-    const allKeys = [];
-    let NextContinuationToken, IsTruncated, Contents;
-
-    do {
-        const params = {
-            Bucket: bucketName,
-            Prefix: prefix
-        };
-        if (NextContinuationToken) {
-            params.ContinuationToken = NextContinuationToken;
-        }
-
-        ({NextContinuationToken, IsTruncated, Contents} = await s3.listObjectsV2(params).promise());
-
-        allKeys.push(...Contents.map(o => o.Key));
-    } while (IsTruncated);
-
-    return allKeys;
-}

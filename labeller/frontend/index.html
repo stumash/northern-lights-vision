@@ -14,7 +14,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/numeral.js/2.0.6/numeral.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.8/js/select2.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.9.1/underscore-min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/2.4.1/lodash.min.js"></script>
+
     <script src="api.js"></script>
     <script src="index.js"></script>
   </head>
@@ -28,6 +29,9 @@
         </ul>
         <div class="brand-logo center valign-wrapper black-text">Aurora Video Labeller</div>
         <ul class="right">
+          <li><a class="black-text" onclick="handleHelpButtonClicked()">
+            <i class="material-icons right">help</i>Help
+          </a></li>
           <li><a class="black-text" onclick="handleSaveButtonClicked()">
             <i class="material-icons right">save</i>Save
           </a></li>
@@ -36,8 +40,8 @@
     </nav>
     <main>
       <div class="videoListContainer">
-        <select id="videoList" style="width: 100%">
-          <option selected disabled hidden>Loading videos list</option>
+        <select id="videoList" style="width: 100%" disabled>
+          <option selected disabled hidden data-default="default">Loading videos list</option>
         </select>
       </div>
       <div class="mainContent row">

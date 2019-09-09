@@ -1,3 +1,14 @@
+"use strict";
+
+// hardcode video frame rate :'(
+const VIDEO_FRAME_RATE = 25;
+const FRAMES_PER_ARROW_KEY_CLICK = 5;
+
+/**
+ * TODO
+ * - update `currentSavedAnnotations` on save
+ */
+
 const VJS_OPTIONS = {
   // inactivityTimeout: 0
 };
@@ -16,16 +27,21 @@ const VJS_MARKERS_OPTIONS = {
 };
 
 // globals
-let videoPlayer, currentMarker, vidUrls_annotUrls;
+let videoPlayer;
+let currentMarker;
+let vidUrls_annotInfos;
+let currentSavedAnnotations = [];
 
 $(document).ready(() => {
   videoPlayer = videojs("videoPlayer", VJS_OPTIONS);
   videoPlayer.markers(VJS_MARKERS_OPTIONS);
   videoPlayer.on("timeupdate", handleTimeUpdate);
   $(document).keyup(handleKeyUp);
-  $("#videoList").select2();
-  $("#videoList").on("select2:selecting", handleVideoSelecting);
-  $("#videoList").on("select2:select", handleVideoSelected);
+
+  const $videoList = $("#videoList");
+  $videoList.select2();
+  $videoList.on("select2:selecting", handleVideoSelecting);
+  $videoList.on("select2:select", handleVideoSelected);
   updateVideoListView();
 });
 
@@ -40,45 +56,62 @@ const handleTimeUpdate = () => {
   updateActiveMarkers();
 };
 
-const handleKeyUp = ({ keyCode }) => {
-  // "m" key
+const handleKeyUp = ({ key, keyCode }) => {
+  // 77 is "m"
   if(keyCode === 77) {
     addOrCompleteMarker();
     updateMarkersView();
   }
+  // 39 is "ArrowRight", 37 is "ArrowLeft"
+  if(keyCode === 39 || keyCode === 37) {
+    seekFrames(keyCode === 39 ? 
+      FRAMES_PER_ARROW_KEY_CLICK : 
+     -FRAMES_PER_ARROW_KEY_CLICK);
+  }
 };
 
 const handleVideoSelecting = e => {
-  const s = "Are you sure you want to switch videos? Unsaved markers may be lost";
-  const acceptSelection = confirm(s);
-  if(!acceptSelection) {
-    e.preventDefault();
+  const currentAnnotations = markersToAnnotations(videoPlayer.markers.getMarkers());
+  if (!_.isEqual(currentSavedAnnotations, currentAnnotations)) {
+    const s = "Are you sure you want to switch videos? Unsaved markers may be lost";
+    const acceptSelection = confirm(s);
+    if(!acceptSelection) {
+      e.preventDefault();
+    }
   }
 };
 
 const handleVideoSelected = () => {
   const selectedVideoPath = $("#videoList").val();
-  console.log(selectedVideoPath);
   videoPlayer.off("loadedmetadata");
   videoPlayer.src({
-    src: 'http://data.northernlights.vision/'+selectedVideoPath,
-    type: 'video/mp4'
+    src: "http://data.northernlights.vision/" + selectedVideoPath,
+    type: "video/mp4"
   });
   videoPlayer.on("loadedmetadata", loadAnnotationsIfPresent);
 };
 
-const handleSaveButtonClicked = () => {
-  if(!userChangedMarkers()) {
-    return alert("No changes to save");
-  }
+const handleSaveButtonClicked = async () => {
   const videoPath = $("#videoList").val();
+  if(!videoPath) {
+    return alert("No video has been selected");
+  }
   const userName = prompt("What is your name?");
   if(userName) {
-    addVideoAnnotation(
+    await addVideoAnnotation(
       videoPath,
       markersToAnnotations(videoPlayer.markers.getMarkers()),
       userName
     );
+
+    // update option in select menu
+    const selectedVideoIndex = $("#videoList").prop("selectedIndex");
+    const newText = `${videoPath} ${userName ? `(annotated by ${userName})` : ''}`;
+    $(`#videoList option:nth-child(${selectedVideoIndex+1})`).text(newText);
+    $("#videoList").select2();
+
+    // update currentSavedAnnotations
+    currentSavedAnnotations = markersToAnnotations(videoPlayer.markers.getMarkers());
   } else {
     alert("Annotations were not saved as you did not enter your name");
   }
@@ -86,10 +119,15 @@ const handleSaveButtonClicked = () => {
 
 const loadAnnotationsIfPresent = async () => {
   videoPlayer.markers.removeAll();
-  const annotationUrl = vidUrls_annotUrls[$("#videoList").selectedIndex][annotationUrl];
-  if(annotationUrl) {
+  const selectedVideoIndex = $("#videoList").prop("selectedIndex");
+  const annotationInfo = vidUrls_annotInfos[selectedVideoIndex].annotationInfo;
+  if(annotationInfo) {
+    const {annotationUrl} = annotationInfo;
     const annotations = await getAnnotationObject(annotationUrl);
+    currentSavedAnnotations = annotations;
     videoPlayer.markers.add(annotationsToMarkers(annotations));
+  } else {
+    currentSavedAnnotations = [];
   }
   updateMarkersView();
 };
@@ -156,16 +194,18 @@ const deleteMarker = (index, isCurrentMarker) => {
 };
 
 const updateVideoListView = async () => {
-  vidUrls_annotUrls = await getVideoList();
+  vidUrls_annotInfos = await getVideoList();
 
-  $("#videoList").html(`
-    <option selected disabled hidden>Select a video</option>
-    ${vidUrls_annotUrls.map(({videoUrl, annotationUrl}) => `
+  const $videoList = $("#videoList");
+  $videoList.html(`
+    ${vidUrls_annotInfos.map(({videoUrl, annotationInfo}) => `
       <option value="${videoUrl}">
-        ${videoUrl} ${annotationUrl ? '(annotated)' : ''}
+        ${videoUrl} ${annotationInfo ? `(annotated by ${annotationInfo.annotationAuthor})` : ""}
       </option>
     `).join("")}
+    <option selected disabled hidden data-default="default">Select a video</option>
   `);
+  $videoList.prop("disabled", false);
 };
 
 /*
@@ -236,13 +276,8 @@ const updateActiveMarkers = () => {
   });
 };
 
-const annotationsAreEqual = (a, b) => {
-  return floatsAreEqual(a.from, b.from) && floatsAreEqual(a.to, b.to);
-};
-
-const floatsAreEqual = (a, b) => {
-  const accuracy = 100000;
-  return Math.round(a * accuracy) === Math.round(b * accuracy);
+const seekFrames = frameCount => {
+  videoPlayer.currentTime(videoPlayer.currentTime() + (frameCount * (1 / VIDEO_FRAME_RATE)));
 };
 
 /*
@@ -278,9 +313,20 @@ const videoTimeFromString = (time) => {
 
 // warn user to not leave the page
 window.addEventListener("beforeunload", e => {
-  if(videoPlayer && videoPlayer.markers.getMarkers().length > 0) {
+  const currentAnnotations = markersToAnnotations(videoPlayer.markers.getMarkers());
+  if (!_.isEqual(currentSavedAnnotations, currentAnnotations)) {
     e.preventDefault();
     e.returnValue = "";
     return "";
   }
 });
+
+const handleHelpButtonClicked = () => {
+  const helpText = [
+    "Key Mappings:",
+    "- m:     start/stop marker",
+    "- left:  scroll back video a small amount",
+    "- right: scroll forward video a small amount"
+  ].join("\n");
+  alert(helpText);
+}
