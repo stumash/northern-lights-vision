@@ -60,6 +60,12 @@ router.post("/annotate", asyncHandler(async (req, res, next) => {
 
   await s3utils.putObject( bucketUrl, annotationPath, JSON.stringify(annotations), annotatedBy );
 
+  res.json({annotationUrl: annotationPath});
+}));
+
+router.post("/deleteAnnotation", asyncHandler(async (req, res, next) => {
+  const {annotationPath} = req.body;
+  await s3utils.deleteObject(bucketUrl, annotationPath);
   res.json({});
 }));
 
