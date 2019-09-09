@@ -21,7 +21,7 @@ Find out if the Aurora Borealis is currently visible!
 - - [x] mp4 to png list (script)
 - - [ ] label png list using timestamps for mp4 (script)
 - - [x] build ui for easy timestamping of mp4
-- - - [ ] **URGENT**: label enough data
+  - - [ ] **URGENT**: label enough data
 
 - [ ] Build and Train a computer vision machine learning model
 - - [ ] Define the model (probably AlexNet variant)
