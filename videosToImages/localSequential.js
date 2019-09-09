@@ -5,11 +5,11 @@ const rimraf = require("rimraf");
 const fs = require("fs");
 const cliProgress = require("cli-progress");
 const exec = util.promisify(childProcess.exec);
+const writeFile = util.promisify(fs.writeFile);
 const readdir = util.promisify(fs.readdir);
 const mkdir = util.promisify(fs.mkdir);
+const stat = util.promisify(fs.stat);
 const rmdir = util.promisify(rimraf);
-
-const writeFile = util.promisify(fs.writeFile);
 
 const UNLABELLED_FOLDER = "../data.northernlights.vision/unlabelled";
 const IMAGES_FOLDER = "../data.northernlights.vision/images";
@@ -18,6 +18,7 @@ const FFMPEG_JPEG_QUALITY = 5;
 // main
 (async () => {
   let fileNames = await readdir(UNLABELLED_FOLDER);
+  // fileNames = fileNames.slice(0,2);
   for(let fileName of fileNames) {
     await videoToImageZip(fileName);
   }
@@ -26,18 +27,21 @@ const FFMPEG_JPEG_QUALITY = 5;
 const videoToImageZip = async (videoFileName) => {
   const videoFilePath = path.join(UNLABELLED_FOLDER, videoFileName);
   const imageFolderPath = path.join(IMAGES_FOLDER, videoFileName.replace(/\.[^/.]+$/, ""));
+  const zipFilePath = path.join(imageFolderPath, `../${path.basename(imageFolderPath)}.7z`);
   console.log("Processing video:", videoFileName);
-  // create folder with same name as video, remove file extension
-  try {
-    await mkdir(imageFolderPath);
+  // check if we've already done this video
+  try { 
+    await stat(zipFilePath);
+    console.log(`File ${zipFilePath} already exists. Skipping`);
+    console.log("\n");
+    return;
   } catch(err) {
-    if(err.code === "EEXIST") {
-      console.log(`Folder ${imageFolderPath} already exists. Skipping`);
-      console.log("\n");
-      return;
+    if(err.code !== "ENOENT") {
+      throw err;
     }
-    throw err;
   }
+  // create folder with same name as video, remove file extension
+  await mkdir(imageFolderPath);
   // use ffmpeg to add fps value to folder
   const fps = await getVideoFps(videoFilePath);
   await writeFile(path.join(imageFolderPath, "fps.txt"), fps);
@@ -45,7 +49,7 @@ const videoToImageZip = async (videoFileName) => {
   // use ffmpeg to add images into the 
   await convertVideoToImages(videoFilePath, imageFolderPath);
   // use 7zip to compress the folder
-  await compressImageFolder(imageFolderPath);
+  await compressImageFolder(imageFolderPath, zipFilePath);
   // delete the folder
   await rmdir(imageFolderPath);
   console.log("\n");
@@ -89,9 +93,8 @@ const convertVideoToImages = (videoFilePath, imageFolderPath) => {
   });
 };
 
-const compressImageFolder = (imageFolderPath) => {
+const compressImageFolder = (imageFolderPath, zipFilePath) => {
   const startTime = Date.now();
-  const zipFilePath = path.join(imageFolderPath, `../${path.basename(imageFolderPath)}.7z`);
   const process = childProcess.spawn("7z", [ "-bsp1", "a", zipFilePath, imageFolderPath ]);
   const progressBar = new cliProgress.SingleBar({
     format: 'jpeg -> 7z | {bar} | {value} % | ETA: {eta} seconds'
