@@ -6,7 +6,11 @@ provider "aws" {
 resource "aws_s3_bucket" "data" {
   bucket = "data.northernlights.vision"
   region = "us-east-1"
-  acl = "private"
+
+  website {
+    index_document = "index.html"
+  }
+
   policy = <<-POLICY
            {
              "Version": "2012-10-17",
@@ -37,7 +41,7 @@ resource "aws_s3_bucket" "data" {
            }
            POLICY
 
-  cors_rule { 
+  cors_rule {
     allowed_origins = ["*"]
     allowed_methods = ["GET"]
     allowed_headers = ["*"]
