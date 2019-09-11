@@ -124,7 +124,7 @@ const handleDeleteButtonClicked = async () => {
     return alert("No saved markers to delete")
   }
 
-  if (!prompt("Are you sure? (Type anything and press enter for yes)")) {
+  if(!confirm("Are you sure?")) {
     return;
   }
   
