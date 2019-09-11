@@ -4,11 +4,6 @@
 const VIDEO_FRAME_RATE = 25;
 const FRAMES_PER_ARROW_KEY_CLICK = 5;
 
-/**
- * TODO
- * - update `currentSavedAnnotations` on save
- */
-
 const VJS_OPTIONS = {
   // inactivityTimeout: 0
 };
@@ -42,7 +37,7 @@ $(document).ready(() => {
   $videoList.select2();
   $videoList.on("select2:selecting", handleVideoSelecting);
   $videoList.on("select2:select", handleVideoSelected);
-  updateVideoListView();
+  initVideoListView();
 });
 
 const handleTimeUpdate = () => {
@@ -96,19 +91,19 @@ const handleSaveButtonClicked = async () => {
   if(!videoPath) {
     return alert("No video has been selected");
   }
-  const userName = prompt("What is your name?");
-  if(userName) {
-    await addVideoAnnotation(
+  const annotationAuthor = prompt("What is your name?");
+  if(annotationAuthor) {
+    const annotationsToSave = markersToAnnotations(videoPlayer.markers.getMarkers());
+    const {annotationUrl} = await addVideoAnnotation(
       videoPath,
-      markersToAnnotations(videoPlayer.markers.getMarkers()),
-      userName
+      annotationsToSave,
+      annotationAuthor
     );
 
     // update option in select menu
     const selectedVideoIndex = $("#videoList").prop("selectedIndex");
-    const newText = `${videoPath} ${userName ? `(annotated by ${userName})` : ''}`;
-    $(`#videoList option:nth-child(${selectedVideoIndex+1})`).text(newText);
-    $("#videoList").select2();
+    vidUrls_annotInfos[selectedVideoIndex].annotationInfo = {annotationUrl, annotationAuthor}
+    updateVideoListView(selectedVideoIndex);
 
     // update currentSavedAnnotations
     currentSavedAnnotations = markersToAnnotations(videoPlayer.markers.getMarkers());
@@ -116,6 +111,36 @@ const handleSaveButtonClicked = async () => {
     alert("Annotations were not saved as you did not enter your name");
   }
 };
+
+const handleDeleteButtonClicked = async () => {
+  const videoPath = $("#videoList").val();
+  if(!videoPath) {
+    return alert("No video has been selected");
+  }
+
+  const selectedVideoIndex = $("#videoList").prop("selectedIndex");
+  const {videoUrl, annotationInfo} = vidUrls_annotInfos[selectedVideoIndex];
+  if (!annotationInfo) {
+    return alert("No saved markers to delete")
+  }
+
+  if(!confirm("Are you sure?")) {
+    return;
+  }
+  
+  await deleteVideoAnnotation(annotationInfo.annotationUrl);
+
+  // update option in select menu
+  vidUrls_annotInfos[selectedVideoIndex] = {videoUrl};
+  updateVideoListView(selectedVideoIndex);
+
+  // update markers
+  videoPlayer.markers.removeAll();
+  updateMarkersView();
+
+  // update currentSavedAnnotations
+  currentSavedAnnotations = markersToAnnotations(videoPlayer.markers.getMarkers());
+}
 
 const loadAnnotationsIfPresent = async () => {
   videoPlayer.markers.removeAll();
@@ -193,19 +218,23 @@ const deleteMarker = (index, isCurrentMarker) => {
   updateMarkersView();
 };
 
-const updateVideoListView = async () => {
+const initVideoListView = async () => {
   vidUrls_annotInfos = await getVideoList();
+  updateVideoListView();
+  $('#videoList').prop("disabled", false);
+};
 
-  const $videoList = $("#videoList");
-  $videoList.html(`
-    ${vidUrls_annotInfos.map(({videoUrl, annotationInfo}) => `
-      <option value="${videoUrl}">
+const updateVideoListView = (selectedVideoIndex) => {
+  const defaultSelected = selectedVideoIndex? '': 'selected';
+  const selectionSelected = (i) => i === selectedVideoIndex? 'selected': '';
+  $('#videoList').html(`
+    ${vidUrls_annotInfos.map(({videoUrl, annotationInfo}, i) => `
+      <option value="${videoUrl}" ${selectionSelected(i)}>
         ${videoUrl} ${annotationInfo ? `(annotated by ${annotationInfo.annotationAuthor})` : ""}
       </option>
     `).join("")}
-    <option selected disabled hidden data-default="default">Select a video</option>
+    <option ${defaultSelected} disabled hidden data-default="default">Select a video</option>
   `);
-  $videoList.prop("disabled", false);
 };
 
 /*
@@ -323,9 +352,12 @@ window.addEventListener("beforeunload", e => {
 
 const handleHelpButtonClicked = () => {
   const helpText = [
+    "'Save' button:     saves markers for selected video",
+    "'Delete' button: delete saved markers for selected video",
+    "",
     "Key Mappings:",
-    "- m:     start/stop marker",
-    "- left:  scroll back video a small amount",
+    "- m:      start/stop marker",
+    "- left:   scroll back video a small amount",
     "- right: scroll forward video a small amount"
   ].join("\n");
   alert(helpText);
