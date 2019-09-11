@@ -35,7 +35,7 @@ const getAllBucketKeys = async (bucket, prefix) => {
     const params = {
       Bucket: bucket,
       Prefix: prefix,
-      ...(NextContinuationToken? {ContinuationToken: NextContinuationToken}: {})
+      ContinuationToken: NextContinuationToken
     };
 
     ({Contents, IsTruncated, NextContinuationToken} = await s3.listObjectsV2(params).promise());
