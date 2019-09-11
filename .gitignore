@@ -3,3 +3,5 @@ data
 bigstuff
 labeller/frontend/videos
 .terraform/
+terraform.tfstate*
+load_env.*

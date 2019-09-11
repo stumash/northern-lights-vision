@@ -1,11 +1,12 @@
 provider "aws" {
-    version
-    region = "us-east-2"
+    version = "~> 2.0"
+    region = "us-east-1"
 }
 
-resource "aws_s3_bucket" "b" {
+resource "aws_s3_bucket" "data" {
   bucket = "data.northernlights.vision"
-
+  region = "us-east-1"
+  acl = "private"
   policy = <<-POLICY
            {
              "Version": "2012-10-17",
@@ -35,4 +36,10 @@ resource "aws_s3_bucket" "b" {
              ]
            }
            POLICY
+
+  cors_rule { 
+    allowed_origins = ["*"]
+    allowed_methods = ["GET"]
+    allowed_headers = ["*"]
+  }
 }
