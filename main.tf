@@ -3,6 +3,15 @@ provider "aws" {
     region = "us-east-1"
 }
 
+terraform {
+  backend "s3" {
+    bucket = "tfstate-s3-northernlights-vision"
+    key = "prod/terraform.tfstate"
+    dynamodb_table = "tfstate-dynamodb-northernlights-vision"
+    region = "us-east-1"
+  }
+}
+
 resource "aws_s3_bucket" "data" {
   bucket = "data.northernlights.vision"
   region = "us-east-1"
