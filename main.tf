@@ -58,7 +58,7 @@ resource "aws_s3_bucket" "data" {
 }
 
 resource "aws_s3_bucket_public_access_block" "data" {
-  bucket = "${aws_s3_bucket.data.id}"
+  bucket = "${aws_s3_bucket.data.bucket}"
   block_public_acls = true
   ignore_public_acls = true
   block_public_policy = false
@@ -90,7 +90,7 @@ resource "aws_s3_bucket" "labeller" {
 }
 
 resource "aws_s3_bucket_public_access_block" "labeller" {
-  bucket = "${aws_s3_bucket.labeller.id}"
+  bucket = "${aws_s3_bucket.labeller.bucket}"
   block_public_acls = true
   ignore_public_acls = true
   block_public_policy = false
