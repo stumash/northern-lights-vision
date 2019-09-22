@@ -1,11 +1,5 @@
 data.northernlights.vision
 data
-<<<<<<< HEAD
-data.northernlights.vision
 labeller/frontend/videos
 node_modules
 dist
-=======
-bigstuff
-labeller/frontend/videos
->>>>>>> master
