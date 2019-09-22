@@ -362,3 +362,17 @@ const handleHelpButtonClicked = () => {
   ].join("\n");
   alert(helpText);
 }
+
+const printAuthorCountMap = () => {
+  console.log(
+    vidUrls_annotInfos
+      .filter(item=>!!item.annotationInfo)
+      .reduce((acc, item) => {
+        const { annotationAuthor: author } = item.annotationInfo;
+        if(!acc[author]) acc[author] = 0;
+        acc[author]++;
+        return acc;
+      }, 
+    {})
+  );
+};
