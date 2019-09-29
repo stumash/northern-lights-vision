@@ -2,7 +2,6 @@
 
 // hardcode video frame rate :'(
 const VIDEO_FRAME_RATE = 25;
-const FRAMES_PER_ARROW_KEY_CLICK = 5;
 
 const VJS_OPTIONS = {
   // inactivityTimeout: 0
@@ -26,6 +25,7 @@ let videoPlayer;
 let currentMarker;
 let vidUrls_annotInfos;
 let currentSavedAnnotations = [];
+let framesPerArrowkeyClick = 5;
 
 $(document).ready(() => {
   videoPlayer = videojs("videoPlayer", VJS_OPTIONS);
@@ -60,8 +60,8 @@ const handleKeyUp = ({ key, keyCode }) => {
   // 39 is "ArrowRight", 37 is "ArrowLeft"
   if(keyCode === 39 || keyCode === 37) {
     seekFrames(keyCode === 39 ? 
-      FRAMES_PER_ARROW_KEY_CLICK : 
-     -FRAMES_PER_ARROW_KEY_CLICK);
+      framesPerArrowkeyClick : 
+     -framesPerArrowkeyClick);
   }
 };
 
@@ -376,3 +376,8 @@ const printAuthorCountMap = () => {
     {})
   );
 };
+
+const onSliderDragged = (value) => {
+  document.querySelector('#framesperclick').value = value;
+  framesPerArrowkeyClick = value;
+}
