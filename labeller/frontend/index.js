@@ -225,7 +225,7 @@ const initVideoListView = async () => {
 };
 
 const updateVideoListView = (selectedVideoIndex) => {
-  const defaultSelected = selectedVideoIndex? '': 'selected';
+  const defaultSelected = selectedVideoIndex === undefined? 'selected': '';
   const selectionSelected = (i) => i === selectedVideoIndex? 'selected': '';
   $('#videoList').html(`
     ${vidUrls_annotInfos.map(({videoUrl, annotationInfo}, i) => `
