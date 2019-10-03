@@ -59,9 +59,17 @@ const handleKeyUp = ({ key, keyCode }) => {
   }
   // 39 is "ArrowRight", 37 is "ArrowLeft"
   if(keyCode === 39 || keyCode === 37) {
-    seekFrames(keyCode === 39 ? 
-      framesPerArrowkeyClick : 
+    seekFrames(keyCode === 39 ?
+      framesPerArrowkeyClick :
      -framesPerArrowkeyClick);
+  }
+  // 48 is "0", 57 is "9"
+  if (keyCode >= 48 && keyCode <= 57) {
+    // framesPerArrowkeyClick can be [1..10]
+    // use 48/"0" as 10, 49-57/"1"-"9" as 1-9
+    const desiredSetting = keyCode === 48 ? 10 : keyCode - 48;
+    $("#fpacSlider").val(desiredSetting);
+    onSliderDragged(desiredSetting);
   }
 };
 
@@ -127,7 +135,7 @@ const handleDeleteButtonClicked = async () => {
   if(!confirm("Are you sure?")) {
     return;
   }
-  
+
   await deleteVideoAnnotation(annotationInfo.annotationUrl);
 
   // update option in select menu
@@ -356,9 +364,10 @@ const handleHelpButtonClicked = () => {
     "'Delete' button: delete saved markers for selected video",
     "",
     "Key Mappings:",
-    "- m:      start/stop marker",
-    "- left:   scroll back video a small amount",
-    "- right: scroll forward video a small amount"
+    "- m:             start/stop marker",
+    "- left:           scroll back video a small amount",
+    "- right:         scroll forward video a small amount",
+    "- 1,2,...,9,0: set framesPerArrowkeyClick to 1-10"
   ].join("\n");
   alert(helpText);
 }
@@ -372,7 +381,7 @@ const printAuthorCountMap = () => {
         if(!acc[author]) acc[author] = 0;
         acc[author]++;
         return acc;
-      }, 
+      },
     {})
   );
 };
