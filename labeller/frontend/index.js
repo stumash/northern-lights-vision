@@ -10,7 +10,8 @@ const VJS_OPTIONS = {
 const VJS_MARKERS_OPTIONS = {
   markerStyle: {
     width: "2px",
-    "background-color": "#558b2f",
+    height: "5px",
+    "background-color": "#8bc34a",
     "border-radius": "0"
   },
   markerTip: {
@@ -245,11 +246,6 @@ const updateVideoListView = (selectedVideoIndex) => {
   `);
 };
 
-/*
-   TODO: instead of highlighting the currentMarker,
-   highlight the marker(s) for which the current
-   video time falls within
-*/
 const updateMarkersView = () => {
   const markers = videoPlayer.markers.getMarkers();
   const currentMarkerKey = currentMarker && currentMarker.key;
@@ -262,8 +258,9 @@ const updateMarkersView = () => {
   $("#markers").html(`
     ${markers.map(({ time, duration, key }, i) => {
       const isCurrentMarker = key === currentMarkerKey;
+      const markerInRange = currentTime > time && currentTime < time + duration;
       return (`
-        <li class="collection-item row ${isCurrentMarker ? "green accent-1" : ""}">
+        <li class="collection-item row ${(markerInRange || isCurrentMarker) ? "green accent-1" : ""}">
           <div class="timeView col s10">
             <div class="input-field inline">
               <input id="fromMarker${i}"
@@ -286,6 +283,7 @@ const updateMarkersView = () => {
       `);
       }).join("")}
   `);
+  scrollToLatestActiveMarker();
 };
 
 const updateCurrentMarkerView = () => {
@@ -311,6 +309,32 @@ const updateActiveMarkers = () => {
       isActive && $li.removeClass("green accent-1");
     }
   });
+  scrollToLatestActiveMarker();
+};
+
+const scrollToLatestActiveMarker = () => {
+  const currentMarkerKey = currentMarker && currentMarker.key;
+  const currentTime = videoPlayer.currentTime();
+  const latestActiveMarkerIndex = videoPlayer.markers.getMarkers()
+    .reduce((acc, { time, duration, key }, i) => (
+      ((currentTime > time && currentTime < time + duration) || currentMarkerKey === key) ? i : acc
+    ), -1);
+  if(latestActiveMarkerIndex >= 0) {
+    scrollToMarker(latestActiveMarkerIndex);
+  }
+};
+
+const scrollToMarker = markerIndex => {
+  const $markers = $("#markers").first();
+  // nth-child index starts at 1
+  const $markerDiv = $(`#markers > li:nth-child(${ markerIndex + 1 })`);
+
+  const markerDivTopPosition = $markerDiv.position().top;
+  const currentScrollPosition = $markers.scrollTop();
+  const markerDivHeight = $markerDiv.outerHeight();
+  const markersContainerHeight = $markers.height();
+
+  $markers.scrollTop(markerDivTopPosition + currentScrollPosition + markerDivHeight - markersContainerHeight);
 };
 
 const seekFrames = frameCount => {
