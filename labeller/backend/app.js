@@ -7,6 +7,7 @@ const cors = require("cors");
 const createError = require("http-errors");
 const morganBody = require("morgan-body");
 const geoip = require("geoip-lite");
+const Stream = require('stream');
 
 const {asyncHandler, validateAnnotations, s3utils} = require("./utils");
 
@@ -20,7 +21,19 @@ const annotPrefix = "annotations/";
 router.use(cors());
 router.use(bodyParser.json());
 router.use(awsServerlessExpressMiddleware.eventContext());
-morganBody(app, { logReqDateTime: false, noColors: true });
+
+/*
+ * For some reason, if logs are written directly to process.stdout, 
+ * then AWS Lambda doesn't add the log timestamp + request ID 
+ * 
+ * So we override the default behavor of morgan-body to use console.log instead
+ */
+const morganBodyOutput = new Stream.Duplex();
+morganBodyOutput._write = (chunk, enc, next) => { 
+  console.log(chunk.toString());
+  next();
+};
+morganBody(app, { logReqDateTime: false, noColors: true, stream: morganBodyOutput });
 
 /** 
  * Log incoming IP addresses
