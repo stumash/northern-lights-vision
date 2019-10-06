@@ -4,6 +4,9 @@ const _ = require("lodash");
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
+const createError = require("http-errors");
+const morganBody = require("morgan-body");
+const geoip = require("geoip-lite");
 
 const {asyncHandler, validateAnnotations, s3utils} = require("./utils");
 
@@ -17,6 +20,18 @@ const annotPrefix = "annotations/";
 router.use(cors());
 router.use(bodyParser.json());
 router.use(awsServerlessExpressMiddleware.eventContext());
+morganBody(app, { logReqDateTime: false, noColors: true });
+
+/** 
+ * Log incoming IP addresses
+ */
+router.use(asyncHandler(async (req, res, next) => {
+  const sourceIp = req.apiGateway ? req.apiGateway.event.requestContext.identity.sourceIp : 
+                                    "localhost";
+  const sourceIpLocation = geoip.lookup(sourceIp);                                     
+  console.log(`Incoming request from ip address: ${sourceIp} ${sourceIpLocation ? `(${sourceIpLocation.country})` : ""}`);
+  next();
+}));
 
 /**
  * List the s3 object urls of all unlabelled video files. If the video file has a corresponding annotation
@@ -70,5 +85,18 @@ router.post("/deleteAnnotation", asyncHandler(async (req, res, next) => {
 }));
 
 app.use("/", router);
+
+// catch 404 and forward to error handler
+app.use((req, res, next) => {
+  next(createError(404));
+});
+
+// error handler
+app.use((err, req, res, next) => {
+  console.log(err);
+  res.locals.message = err.message;
+  res.status(err.status || 500);
+  res.json({ message: res.locals.message });
+});
 
 module.exports = app;
