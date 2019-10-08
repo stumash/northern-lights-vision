@@ -3,6 +3,15 @@ provider "aws" {
     region = "us-east-1"
 }
 
+terraform {
+  backend "s3" {
+    bucket = "tfstate-s3-northernlights-vision"
+    key = "prod/terraform.tfstate"
+    dynamodb_table = "tfstate-dynamodb-northernlights-vision"
+    region = "us-east-1"
+  }
+}
+
 resource "aws_s3_bucket" "data" {
   bucket = "data.northernlights.vision"
   region = "us-east-1"
@@ -49,7 +58,7 @@ resource "aws_s3_bucket" "data" {
 }
 
 resource "aws_s3_bucket_public_access_block" "data" {
-  bucket = "${aws_s3_bucket.data.id}"
+  bucket = "${aws_s3_bucket.data.bucket}"
   block_public_acls = true
   ignore_public_acls = true
   block_public_policy = false
@@ -81,7 +90,7 @@ resource "aws_s3_bucket" "labeller" {
 }
 
 resource "aws_s3_bucket_public_access_block" "labeller" {
-  bucket = "${aws_s3_bucket.labeller.id}"
+  bucket = "${aws_s3_bucket.labeller.bucket}"
   block_public_acls = true
   ignore_public_acls = true
   block_public_policy = false
