@@ -1,6 +1,6 @@
 provider "aws" {
-    version = "~> 2.0"
-    region = "us-east-1"
+  version = "~> 2.0"
+  region = "us-east-1"
 }
 
 terraform {
@@ -21,34 +21,34 @@ resource "aws_s3_bucket" "data" {
   }
 
   policy = <<-POLICY
-           {
-             "Version": "2012-10-17",
-             "Id": "Policy1566160978795",
-             "Statement": [
-                 {
-                     "Sid": "Stmt1566160973362",
-                     "Effect": "Allow",
-                     "Principal": "*",
-                     "Action": "s3:GetObject",
-                     "Resource": "arn:aws:s3:::data.northernlights.vision/unlabelled/*"
-                 },
-                 {
-                     "Sid": "Stmt1566274943564",
-                     "Effect": "Allow",
-                     "Principal": "*",
-                     "Action": "s3:GetObject",
-                     "Resource": "arn:aws:s3:::data.northernlights.vision/index.html"
-                 },
-                 {
-                     "Sid": "Stmt1566274943564",
-                     "Effect": "Allow",
-                     "Principal": "*",
-                     "Action": "s3:GetObject",
-                     "Resource": "arn:aws:s3:::data.northernlights.vision/annotations/*"
-                 }
-             ]
-           }
-           POLICY
+  {
+    "Version": "2012-10-17",
+    "Id": "Policy1566160978795",
+    "Statement": [
+      {
+        "Sid": "Stmt1566160973362",
+        "Effect": "Allow",
+        "Principal": "*",
+        "Action": "s3:GetObject",
+        "Resource": "arn:aws:s3:::data.northernlights.vision/unlabelled/*"
+      },
+      {
+        "Sid": "Stmt1566274943564",
+        "Effect": "Allow",
+        "Principal": "*",
+        "Action": "s3:GetObject",
+        "Resource": "arn:aws:s3:::data.northernlights.vision/index.html"
+      },
+      {
+        "Sid": "Stmt1566274943564",
+        "Effect": "Allow",
+        "Principal": "*",
+        "Action": "s3:GetObject",
+        "Resource": "arn:aws:s3:::data.northernlights.vision/annotations/*"
+      }
+    ]
+  }
+  POLICY
 
   cors_rule {
     allowed_origins = ["*"]
@@ -73,20 +73,20 @@ resource "aws_s3_bucket" "labeller" {
   }
 
   policy = <<-POLICY
-           {
-             "Version": "2012-10-17",
-             "Id": "Policy1566271355793",
-             "Statement": [
-               {
-                   "Sid": "Stmt1566271354288",
-                   "Effect": "Allow",
-                   "Principal": "*",
-                   "Action": "s3:GetObject",
-                   "Resource": "arn:aws:s3:::labeller.northernlights.vision/*"
-               }
-             ]
-           }
-           POLICY
+  {
+    "Version": "2012-10-17",
+    "Id": "Policy1566271355793",
+    "Statement": [
+      {
+        "Sid": "Stmt1566271354288",
+        "Effect": "Allow",
+        "Principal": "*",
+        "Action": "s3:GetObject",
+        "Resource": "arn:aws:s3:::labeller.northernlights.vision/*"
+      }
+    ]
+  }
+  POLICY
 }
 
 resource "aws_s3_bucket_public_access_block" "labeller" {
@@ -94,4 +94,48 @@ resource "aws_s3_bucket_public_access_block" "labeller" {
   block_public_acls = true
   ignore_public_acls = true
   block_public_policy = false
+}
+
+resource "aws_lambda_function" "api_labeller" {
+  filename = "./labeller/backend/api_labeller.zip"
+  function_name = "api_labeller"
+  role = "${aws_iam_role.api_labeller_role.arn}"
+
+  runtime = "nodejs10.x"
+  source_code_hash = "${filebase64sha256("./labeller/backend/api_labeller.zip")}"
+  handler = "lambda.handler"
+
+  timeout = 10
+  memory_size = 512
+}
+
+resource "aws_iam_role" "api_labeller_role" {
+  name = "api_labeller_role"
+  description = "Allows Lambda functions to call S3 on your behalf."
+
+  assume_role_policy = <<-EOF
+  {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Action": "sts:AssumeRole",
+        "Principal": {
+          "Service": "lambda.amazonaws.com"
+        },
+        "Effect": "Allow",
+        "Sid": ""
+      }
+    ]
+  }
+  EOF
+}
+
+resource "aws_iam_role_policy_attachment" "api_labeller_role_s3fullaccess" {
+  role       = "${aws_iam_role.api_labeller_role.name}"
+  policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+}
+
+resource "aws_iam_role_policy_attachment" "api_labeller_role_lambdabasicexecution" {
+  role       = "${aws_iam_role.api_labeller_role.name}"
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
