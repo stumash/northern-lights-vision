@@ -48,14 +48,15 @@ const extractTimestampsFromFolder = async extractedImagesFolderPath => {
       console.log("Probing file format of", filePath);
       const ffmpegFormatCommand = `ffprobe ${filePath} -show_entries format=format_name -v quiet | grep -oP 'format_name=\\K\\w+'`;
       const { stdout } = await exec(ffmpegFormatCommand);
-      ffmpegFormat = stdout;
-      console.log("Probed file format:", ffmpegFormat.trim());
+      ffmpegFormat = stdout.trim();
+      console.log("Probed file format:", ffmpegFormat);
     }
 
-    const textExtractionCommand = `ffmpeg -i ${filePath} -vf "crop=300:30:554:in_h-30, negate" -f ${ffmpegFormat.trim()} pipe: | tesseract stdin stdout --psm 7`;
-    const { stdout: rawExtractedText } = await exec(textExtractionCommand);
+    const textExtractionCommand = `ffmpeg -i ${filePath} -vf "crop=300:30:554:in_h-30, negate" -f ${ffmpegFormat} pipe: | tesseract stdin stdout --psm 7`;
+    const { stdout } = await exec(textExtractionCommand);
+    const rawExtractedText = stdout.trim();
     console.log(fileName, ":");
-    console.log(`  ${rawExtractedText.trim()}`);
+    console.log(`  ${rawExtractedText}`);
     const dateTextMatch = rawExtractedText.match(/(\d{4}\/\d{2}\/\d{2})\s*(\d{2}:\d{2}(:\d{2})?).*(?!HNR)([a-zA-Z]{3})/);
     if(dateTextMatch) {
       const [ ,date, time,, timeZone ] = dateTextMatch;
