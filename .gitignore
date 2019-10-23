@@ -3,3 +3,4 @@ data
 labeller/frontend/videos
 node_modules
 dist
+venv
