@@ -97,13 +97,11 @@ resource "aws_s3_bucket_public_access_block" "labeller" {
 }
 
 resource "aws_lambda_function" "api_labeller" {
-  filename = "./labeller/backend/api_labeller.zip"
   function_name = "api_labeller"
   role = "${aws_iam_role.api_labeller_role.arn}"
 
   runtime = "nodejs10.x"
-  source_code_hash = "${filebase64sha256("./labeller/backend/api_labeller.zip")}"
-  handler = "lambda.handler"
+  handler = "lambda.handler"  
 
   timeout = 10
   memory_size = 512
@@ -213,40 +211,66 @@ resource "aws_api_gateway_rest_api" "api_labeller_northernlights_vision" {
   EOF
 }
 
-#resource "aws_api_gateway_domain_name" "api_labeller_northernlights_vision" {
-  #certificate_arn = "${aws_acm_certificate_validation.api_labeller_northernlights_vision.certificate_arn}"
-  #domain_name     = "${aws_route53_zone.api_northernlights_vision.name}"
-#}
-
-#resource "aws_acm_certificate" "northernlights_vision" {
-  #domain_name = "${aws_route53_zone.northernlights_vision.name}"
-  #validation_method = "DNS"
-#}
+locals {
+  domain_name = "northernlights.vision"
+  data_domain_name = "data.${local.domain_name}"
+  labeller_domain_name = "labeller.${local.domain_name}"
+  api_labeller_domain_name = "api.${local.labeller_domain_name}"
+}
 
 resource "aws_route53_zone" "northernlights_vision" {
-  name = "northernlights.vision"
+  name = "${local.domain_name}"
 }
 
-resource "aws_route53_record" "northernlights_vision_NS" {
-  zone_id = "${aws_route53_zone.northernlights_vision.zone_id}"
-  name = "${aws_route53_zone.northernlights_vision.name}"
-  type = "NS"
-  ttl = 172800
-
-  records = [
-    "${aws_route53_zone.northernlights_vision.name_servers.0}",
-    "${aws_route53_zone.northernlights_vision.name_servers.1}",
-    "${aws_route53_zone.northernlights_vision.name_servers.2}",
-    "${aws_route53_zone.northernlights_vision.name_servers.3}",
-  ]
+resource "aws_api_gateway_domain_name" "api_labeller_northernlights_vision" {
+  certificate_arn = "arn:aws:acm:us-east-1:171337445867:certificate/33590e53-4953-4e9f-960c-a4e8c1a87ae4"
+  domain_name     = "${local.api_labeller_domain_name}"
 }
 
-resource "aws_route53_record" "northernlights_vision_SOA" {
-  zone_id = "${aws_route53_zone.northernlights_vision.zone_id}"
-  name = "${aws_route53_zone.northernlights_vision.name}"
-  type = "SOA"
-  ttl = 900
+resource "aws_route53_record" "api_labeller_northernlights_vision" {
+  name    = "${local.api_labeller_domain_name}"
+  type    = "A"
+  zone_id = "${aws_route53_zone.northernlights_vision.id}"
+
+  alias {
+    evaluate_target_health = false
+    name                   = "${aws_api_gateway_domain_name.api_labeller_northernlights_vision.cloudfront_domain_name}"
+    zone_id                = "${aws_api_gateway_domain_name.api_labeller_northernlights_vision.cloudfront_zone_id}"
+  }
 }
+
+resource "aws_route53_record" "data_northernlights_vision" {
+  name = "${local.data_domain_name}"
+  type = "A"
+  zone_id = "${aws_route53_zone.northernlights_vision.id}"
+
+  alias {
+    evaluate_target_health = false
+    name                   = "${aws_s3_bucket.data.website_domain}"
+    zone_id                = "${aws_s3_bucket.data.hosted_zone_id}"
+  }
+}
+
+# resource "aws_route53_record" "northernlights_vision_NS" {
+#   zone_id = "${aws_route53_zone.northernlights_vision.zone_id}"
+#   name = "${aws_route53_zone.northernlights_vision.name}"
+#   type = "NS"
+#   ttl = 172800
+
+#   records = [
+#     "${aws_route53_zone.northernlights_vision.name_servers.0}",
+#     "${aws_route53_zone.northernlights_vision.name_servers.1}",
+#     "${aws_route53_zone.northernlights_vision.name_servers.2}",
+#     "${aws_route53_zone.northernlights_vision.name_servers.3}",
+#   ]
+# }
+
+# resource "aws_route53_record" "northernlights_vision_SOA" {
+#   zone_id = "${aws_route53_zone.northernlights_vision.zone_id}"
+#   name = "${aws_route53_zone.northernlights_vision.name}"
+#   type = "SOA"
+#   ttl = 900
+# }
 
 #resource "aws_route53_zone" "api_northernlights_vision" {
   #name = "api.${aws_route53_zone.northernlights_vision.name}"

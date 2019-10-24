@@ -1,0 +1,10 @@
+version: '3'
+services:
+  terraform:
+    image: hashicorp/terraform:0.12.12
+    volumes: 
+      - ./:/app
+      - ~/.aws:/root/.aws
+    working_dir: /app
+    environment:
+      - TF_LOG=${TF_LOG}
