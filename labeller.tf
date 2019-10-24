@@ -101,7 +101,7 @@ resource "aws_lambda_function" "api_labeller" {
   role = "${aws_iam_role.api_labeller_role.arn}"
 
   runtime = "nodejs10.x"
-  handler = "lambda.handler"  
+  handler = "lambda.handler"
 
   timeout = 10
   memory_size = 512
@@ -240,13 +240,25 @@ resource "aws_route53_record" "api_labeller_northernlights_vision" {
 }
 
 resource "aws_route53_record" "data_northernlights_vision" {
-  name = "${local.data_domain_name}"
-  type = "A"
+  name    = "${local.data_domain_name}"
+  type    = "A"
   zone_id = "${aws_route53_zone.northernlights_vision.id}"
 
   alias {
     evaluate_target_health = false
     name                   = "${aws_s3_bucket.data.website_domain}"
     zone_id                = "${aws_s3_bucket.data.hosted_zone_id}"
+  }
+}
+
+resource "aws_route53_record" "labeller_northernlights_vision" {
+  name    = "${local.labeller_domain_name}"
+  type    = "A"
+  zone_id = "${aws_route53_zone.northernlights_vision.id}"
+
+  alias {
+    evaluate_target_health = false
+    name                   = "${aws_s3_bucket.labeller.website_domain}"
+    zone_id                = "${aws_s3_bucket.labeller.hosted_zone_id}"
   }
 }
