@@ -139,3 +139,124 @@ resource "aws_iam_role_policy_attachment" "api_labeller_role_lambdabasicexecutio
   role       = "${aws_iam_role.api_labeller_role.name}"
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
+
+resource "aws_api_gateway_rest_api" "api_labeller_northernlights_vision" {
+  name = "api_labeller_northernlights_vision"
+  body = <<-EOF
+  {
+    "openapi": "3.0.1",
+    "info": {
+      "title": "api_labeller_northernlights_vision",
+      "version": "2019-08-31T02:31:41Z"
+    },
+    "servers": [
+      {
+        "url": "https://api.labeller.northernlights.vision"
+      }
+    ],
+    "paths": {
+      "/{api-labeller-lambda+}": {
+        "options": {
+          "responses": {
+            "200": {
+              "description": "200 response",
+              "headers": {
+                "Access-Control-Allow-Origin": {
+                  "schema": {
+                    "type": "string"
+                  }
+                },
+                "Access-Control-Allow-Methods": {
+                  "schema": {
+                    "type": "string"
+                  }
+                },
+                "Access-Control-Allow-Headers": {
+                  "schema": {
+                    "type": "string"
+                  }
+                }
+              },
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Empty"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-amazon-apigateway-any-method": {
+          "parameters": [
+            {
+              "name": "api-labeller-lambda",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "components": {
+      "schemas": {
+        "Empty": {
+          "title": "Empty Schema",
+          "type": "object"
+        }
+      }
+    }
+  }
+  EOF
+}
+
+#resource "aws_api_gateway_domain_name" "api_labeller_northernlights_vision" {
+  #certificate_arn = "${aws_acm_certificate_validation.api_labeller_northernlights_vision.certificate_arn}"
+  #domain_name     = "${aws_route53_zone.api_northernlights_vision.name}"
+#}
+
+#resource "aws_acm_certificate" "northernlights_vision" {
+  #domain_name = "${aws_route53_zone.northernlights_vision.name}"
+  #validation_method = "DNS"
+#}
+
+resource "aws_route53_zone" "northernlights_vision" {
+  name = "northernlights.vision"
+}
+
+resource "aws_route53_record" "northernlights_vision_NS" {
+  zone_id = "${aws_route53_zone.northernlights_vision.zone_id}"
+  name = "${aws_route53_zone.northernlights_vision.name}"
+  type = "NS"
+  ttl = 172800
+
+  records = [
+    "${aws_route53_zone.northernlights_vision.name_servers.0}",
+    "${aws_route53_zone.northernlights_vision.name_servers.1}",
+    "${aws_route53_zone.northernlights_vision.name_servers.2}",
+    "${aws_route53_zone.northernlights_vision.name_servers.3}",
+  ]
+}
+
+resource "aws_route53_record" "northernlights_vision_SOA" {
+  zone_id = "${aws_route53_zone.northernlights_vision.zone_id}"
+  name = "${aws_route53_zone.northernlights_vision.name}"
+  type = "SOA"
+  ttl = 900
+}
+
+#resource "aws_route53_zone" "api_northernlights_vision" {
+  #name = "api.${aws_route53_zone.northernlights_vision.name}"
+#}
+
+#resource "aws_route53_zone" "data_northernlights_vision" {
+  #name = "data.${aws_route53_zone.northernlights_vision.name}"
+#}
+
+#resource "aws_route53_zone" "labeller_northernlights_vision" {
+  #name = "labeller.${aws_route53_zone.northernlights_vision.name}"
+#}
+
