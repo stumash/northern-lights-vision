@@ -7,4 +7,5 @@ services:
       - ~/.aws:/root/.aws
     working_dir: /app
     environment:
+      - AWS_PROFILE=${AWS_PROFILE}
       - TF_LOG=${TF_LOG}

@@ -250,37 +250,3 @@ resource "aws_route53_record" "data_northernlights_vision" {
     zone_id                = "${aws_s3_bucket.data.hosted_zone_id}"
   }
 }
-
-# resource "aws_route53_record" "northernlights_vision_NS" {
-#   zone_id = "${aws_route53_zone.northernlights_vision.zone_id}"
-#   name = "${aws_route53_zone.northernlights_vision.name}"
-#   type = "NS"
-#   ttl = 172800
-
-#   records = [
-#     "${aws_route53_zone.northernlights_vision.name_servers.0}",
-#     "${aws_route53_zone.northernlights_vision.name_servers.1}",
-#     "${aws_route53_zone.northernlights_vision.name_servers.2}",
-#     "${aws_route53_zone.northernlights_vision.name_servers.3}",
-#   ]
-# }
-
-# resource "aws_route53_record" "northernlights_vision_SOA" {
-#   zone_id = "${aws_route53_zone.northernlights_vision.zone_id}"
-#   name = "${aws_route53_zone.northernlights_vision.name}"
-#   type = "SOA"
-#   ttl = 900
-# }
-
-#resource "aws_route53_zone" "api_northernlights_vision" {
-  #name = "api.${aws_route53_zone.northernlights_vision.name}"
-#}
-
-#resource "aws_route53_zone" "data_northernlights_vision" {
-  #name = "data.${aws_route53_zone.northernlights_vision.name}"
-#}
-
-#resource "aws_route53_zone" "labeller_northernlights_vision" {
-  #name = "labeller.${aws_route53_zone.northernlights_vision.name}"
-#}
-
