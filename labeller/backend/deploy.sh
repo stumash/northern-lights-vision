@@ -6,8 +6,8 @@ npm install
 
 rm -rf dist
 mkdir dist
-zip -rq dist/package.zip node_modules/ *.js
+zip -rq dist/api_labeller.zip node_modules/ *.js
 
 aws lambda update-function-code \
   --function-name api_labeller \
-  --zip-file fileb://dist/package.zip
+  --zip-file fileb://dist/api_labeller.zip

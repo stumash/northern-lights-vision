@@ -1,5 +1,8 @@
 data.northernlights.vision
 data
 labeller/frontend/videos
+.terraform/
+terraform.tfstate*
+load_env.*
 node_modules
 dist
