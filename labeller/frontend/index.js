@@ -2,12 +2,6 @@
 
 // hardcode video frame rate :'(
 const VIDEO_FRAME_RATE = 25;
-const FRAMES_PER_ARROW_KEY_CLICK = 5;
-
-/**
- * TODO
- * - update `currentSavedAnnotations` on save
- */
 
 const VJS_OPTIONS = {
   // inactivityTimeout: 0
@@ -16,7 +10,8 @@ const VJS_OPTIONS = {
 const VJS_MARKERS_OPTIONS = {
   markerStyle: {
     width: "2px",
-    "background-color": "#558b2f",
+    height: "5px",
+    "background-color": "#8bc34a",
     "border-radius": "0"
   },
   markerTip: {
@@ -31,6 +26,7 @@ let videoPlayer;
 let currentMarker;
 let vidUrls_annotInfos;
 let currentSavedAnnotations = [];
+let framesPerArrowkeyClick = 5;
 
 $(document).ready(() => {
   videoPlayer = videojs("videoPlayer", VJS_OPTIONS);
@@ -42,7 +38,7 @@ $(document).ready(() => {
   $videoList.select2();
   $videoList.on("select2:selecting", handleVideoSelecting);
   $videoList.on("select2:select", handleVideoSelected);
-  updateVideoListView();
+  initVideoListView();
 });
 
 const handleTimeUpdate = () => {
@@ -64,9 +60,17 @@ const handleKeyUp = ({ key, keyCode }) => {
   }
   // 39 is "ArrowRight", 37 is "ArrowLeft"
   if(keyCode === 39 || keyCode === 37) {
-    seekFrames(keyCode === 39 ? 
-      FRAMES_PER_ARROW_KEY_CLICK : 
-     -FRAMES_PER_ARROW_KEY_CLICK);
+    seekFrames(keyCode === 39 ?
+      framesPerArrowkeyClick :
+     -framesPerArrowkeyClick);
+  }
+  // 48 is "0", 57 is "9"
+  if (keyCode >= 48 && keyCode <= 57) {
+    // framesPerArrowkeyClick can be [1..10]
+    // use 48/"0" as 10, 49-57/"1"-"9" as 1-9
+    const desiredSetting = keyCode === 48 ? 10 : keyCode - 48;
+    $("#fpacSlider").val(desiredSetting);
+    onSliderDragged(desiredSetting);
   }
 };
 
@@ -96,19 +100,19 @@ const handleSaveButtonClicked = async () => {
   if(!videoPath) {
     return alert("No video has been selected");
   }
-  const userName = prompt("What is your name?");
-  if(userName) {
-    await addVideoAnnotation(
+  const annotationAuthor = prompt("What is your name?");
+  if(annotationAuthor) {
+    const annotationsToSave = markersToAnnotations(videoPlayer.markers.getMarkers());
+    const {annotationUrl} = await addVideoAnnotation(
       videoPath,
-      markersToAnnotations(videoPlayer.markers.getMarkers()),
-      userName
+      annotationsToSave,
+      annotationAuthor
     );
 
     // update option in select menu
     const selectedVideoIndex = $("#videoList").prop("selectedIndex");
-    const newText = `${videoPath} ${userName ? `(annotated by ${userName})` : ''}`;
-    $(`#videoList option:nth-child(${selectedVideoIndex+1})`).text(newText);
-    $("#videoList").select2();
+    vidUrls_annotInfos[selectedVideoIndex].annotationInfo = {annotationUrl, annotationAuthor}
+    updateVideoListView(selectedVideoIndex);
 
     // update currentSavedAnnotations
     currentSavedAnnotations = markersToAnnotations(videoPlayer.markers.getMarkers());
@@ -116,6 +120,36 @@ const handleSaveButtonClicked = async () => {
     alert("Annotations were not saved as you did not enter your name");
   }
 };
+
+const handleDeleteButtonClicked = async () => {
+  const videoPath = $("#videoList").val();
+  if(!videoPath) {
+    return alert("No video has been selected");
+  }
+
+  const selectedVideoIndex = $("#videoList").prop("selectedIndex");
+  const {videoUrl, annotationInfo} = vidUrls_annotInfos[selectedVideoIndex];
+  if (!annotationInfo) {
+    return alert("No saved markers to delete")
+  }
+
+  if(!confirm("Are you sure?")) {
+    return;
+  }
+
+  await deleteVideoAnnotation(annotationInfo.annotationUrl);
+
+  // update option in select menu
+  vidUrls_annotInfos[selectedVideoIndex] = {videoUrl};
+  updateVideoListView(selectedVideoIndex);
+
+  // update markers
+  videoPlayer.markers.removeAll();
+  updateMarkersView();
+
+  // update currentSavedAnnotations
+  currentSavedAnnotations = markersToAnnotations(videoPlayer.markers.getMarkers());
+}
 
 const loadAnnotationsIfPresent = async () => {
   videoPlayer.markers.removeAll();
@@ -193,26 +227,25 @@ const deleteMarker = (index, isCurrentMarker) => {
   updateMarkersView();
 };
 
-const updateVideoListView = async () => {
+const initVideoListView = async () => {
   vidUrls_annotInfos = await getVideoList();
+  updateVideoListView();
+  $('#videoList').prop("disabled", false);
+};
 
-  const $videoList = $("#videoList");
-  $videoList.html(`
-    ${vidUrls_annotInfos.map(({videoUrl, annotationInfo}) => `
-      <option value="${videoUrl}">
+const updateVideoListView = (selectedVideoIndex) => {
+  const defaultSelected = selectedVideoIndex === undefined? 'selected': '';
+  const selectionSelected = (i) => i === selectedVideoIndex? 'selected': '';
+  $('#videoList').html(`
+    ${vidUrls_annotInfos.map(({videoUrl, annotationInfo}, i) => `
+      <option value="${videoUrl}" ${selectionSelected(i)}>
         ${videoUrl} ${annotationInfo ? `(annotated by ${annotationInfo.annotationAuthor})` : ""}
       </option>
     `).join("")}
-    <option selected disabled hidden data-default="default">Select a video</option>
+    <option ${defaultSelected} disabled hidden data-default="default">Select a video</option>
   `);
-  $videoList.prop("disabled", false);
 };
 
-/*
-   TODO: instead of highlighting the currentMarker,
-   highlight the marker(s) for which the current
-   video time falls within
-*/
 const updateMarkersView = () => {
   const markers = videoPlayer.markers.getMarkers();
   const currentMarkerKey = currentMarker && currentMarker.key;
@@ -225,8 +258,9 @@ const updateMarkersView = () => {
   $("#markers").html(`
     ${markers.map(({ time, duration, key }, i) => {
       const isCurrentMarker = key === currentMarkerKey;
+      const markerInRange = currentTime > time && currentTime < time + duration;
       return (`
-        <li class="collection-item row ${isCurrentMarker ? "green accent-1" : ""}">
+        <li class="collection-item row ${(markerInRange || isCurrentMarker) ? "green accent-1" : ""}">
           <div class="timeView col s10">
             <div class="input-field inline">
               <input id="fromMarker${i}"
@@ -249,6 +283,7 @@ const updateMarkersView = () => {
       `);
       }).join("")}
   `);
+  scrollToLatestActiveMarker();
 };
 
 const updateCurrentMarkerView = () => {
@@ -274,6 +309,32 @@ const updateActiveMarkers = () => {
       isActive && $li.removeClass("green accent-1");
     }
   });
+  scrollToLatestActiveMarker();
+};
+
+const scrollToLatestActiveMarker = () => {
+  const currentMarkerKey = currentMarker && currentMarker.key;
+  const currentTime = videoPlayer.currentTime();
+  const latestActiveMarkerIndex = videoPlayer.markers.getMarkers()
+    .reduce((acc, { time, duration, key }, i) => (
+      ((currentTime > time && currentTime < time + duration) || currentMarkerKey === key) ? i : acc
+    ), -1);
+  if(latestActiveMarkerIndex >= 0) {
+    scrollToMarker(latestActiveMarkerIndex);
+  }
+};
+
+const scrollToMarker = markerIndex => {
+  const $markers = $("#markers").first();
+  // nth-child index starts at 1
+  const $markerDiv = $(`#markers > li:nth-child(${ markerIndex + 1 })`);
+
+  const markerDivTopPosition = $markerDiv.position().top;
+  const currentScrollPosition = $markers.scrollTop();
+  const markerDivHeight = $markerDiv.outerHeight();
+  const markersContainerHeight = $markers.height();
+
+  $markers.scrollTop(markerDivTopPosition + currentScrollPosition + markerDivHeight - markersContainerHeight);
 };
 
 const seekFrames = frameCount => {
@@ -323,10 +384,33 @@ window.addEventListener("beforeunload", e => {
 
 const handleHelpButtonClicked = () => {
   const helpText = [
+    "'Save' button:     saves markers for selected video",
+    "'Delete' button: delete saved markers for selected video",
+    "",
     "Key Mappings:",
-    "- m:     start/stop marker",
-    "- left:  scroll back video a small amount",
-    "- right: scroll forward video a small amount"
+    "- m:             start/stop marker",
+    "- left:           scroll back video a small amount",
+    "- right:         scroll forward video a small amount",
+    "- 1,2,...,9,0: set framesPerArrowkeyClick to 1-10"
   ].join("\n");
   alert(helpText);
+}
+
+const printAuthorCountMap = () => {
+  console.log(
+    vidUrls_annotInfos
+      .filter(item=>!!item.annotationInfo)
+      .reduce((acc, item) => {
+        const { annotationAuthor: author } = item.annotationInfo;
+        if(!acc[author]) acc[author] = 0;
+        acc[author]++;
+        return acc;
+      },
+    {})
+  );
+};
+
+const onSliderDragged = (value) => {
+  document.querySelector('#framesperclick').value = value;
+  framesPerArrowkeyClick = value;
 }

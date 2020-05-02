@@ -35,6 +35,9 @@
           <li><a class="black-text" onclick="handleSaveButtonClicked()">
             <i class="material-icons right">save</i>Save
           </a></li>
+          <li><a class="black-text" onclick="handleDeleteButtonClicked()">
+            <i class="material-icons right">delete_forever</i>Delete
+          </a></li>
         </ul>
       </div>
     </nav>
@@ -49,6 +52,14 @@
           <video id="videoPlayer" class="video-js" controls preload="auto"></video>
         </div>
         <div class="markersContainer col xl4 s12">
+          <div class="slider-container">
+            <span id="fpacSliderLabel">
+              <label for="fpacSlider">Frames per Arrowkey Press:</label>
+              <output for="fpacSlider" id="framesperclick">5</output>
+            </span>
+            <input type="range" min="1" max="10" step="1" value="5" id="fpacSlider"
+                   list="frameperclickvals" oninput="onSliderDragged(value)">
+          </div>
           <ul id="markers" class="collection with-header">
             <li class="collection-header center"><h4>No Markers</h4></li>
           </ul>

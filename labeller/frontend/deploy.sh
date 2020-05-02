@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 
-aws_profile_flag="${1}" # e.g. --profile=john
+if [ -n "${1}" ]; then
+    aws_profile_flag="${1}" # e.g. --profile=john
+else
+    aws_profile_flag="--profile=default"
+fi
 
 THIS_DIR="$(dirname "$(readlink -f "${0}")")"
 cd "${THIS_DIR}"

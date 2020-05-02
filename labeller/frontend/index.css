@@ -35,6 +35,7 @@ nav img {
   margin: 0;
   max-height: 575px;
   overflow-y: auto;
+  scroll-behavior: smooth;
 }
 #markers .btn-flat i {
   font-size: 24px;
@@ -77,8 +78,6 @@ nav img {
   border-bottom: 1px solid #689f38;
   box-shadow: 0 1px 0 0 #689f38;
 }
-
-
 /* Override video js marker styling */
 #videoPlayer .vjs-marker {
   opacity: 0.85;
@@ -142,4 +141,10 @@ nav img {
   border-bottom: 1px solid #558b2f;
   -webkit-box-shadow: 0 1px 0 0 #558b2f;
   box-shadow: 0 1px 0 0 #558b2f;
+}
+
+/* FramePerArrowClick Slider */
+#fpacSlider {
+    width: 60%;
+    padding-left: 12%;
 }
