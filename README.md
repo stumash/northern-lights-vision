@@ -5,6 +5,14 @@ Find out if the Aurora Borealis is currently visible!
 * notification service (email or text or mobile app)
 * live web page updated in real time
 
+## Data Pipeline
+
+1. `download_all_ylknf_480p_mp4.sh` : get all the raw night sky video from ucalgary, put it in `/data.northernlights.vision/unlabelled`. Then we flattened the folder structure to only contain the 480p mp4 files
+2. put raw night sky videos in s3, run `/labeller` project as s3 static site, GUI to label timeranges of raw video as 'containing northern lights'. This gave us `/data.northernlights.vision/annotations` json files that represent the time ranges in each raw video where the aurora is visible
+3. `/videoToImages` contains the code of an aws lambda that (in massive parallel for $2.50) uses FFMPEG to extract all the individual frames of every video. These folders full of individual frame `.jpg`s are zipped at `.7z` compressed folders in `/data.northernlights.vision/images`
+4. `/makeLabelledVideoFramesCsv/main.py` generates `/data.northernlights.vision/labelledVideoFrames.csv` which is a `.csv` file of the form `File Name,Frame Time,Is Aurora` which labels every zipped frame as `True` or `False`
+
+
 ## TODO
 
 - [x] Assess image quality across resolutions
