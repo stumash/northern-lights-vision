@@ -64,7 +64,7 @@ const extractTimestampsFromFolder = async extractedImagesFolderPath => {
       if(!isNaN(parsedEpoch)) {
         console.log(`  ${new Date(parsedEpoch).toISOString()}`);
       } else {
-        console.log(`  Extracted unparseable text: ${date} ${time} ${timeZone}`);
+        console.log(`  Extracted unparseable date format: ${date} ${time} ${timeZone}`);
         console.log("  Bad command:", textExtractionCommand);
       }
     } else {
